@@ -1,0 +1,78 @@
+name: Deploy Facebook Ads Manager
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-deploy:
+    name: Build and Deploy Facebook Ads Manager
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build project
+        run: yarn build
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t bwnguyenvu/adsmanager:latest .
+          docker push bwnguyenvu/adsmanager:latest
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            # Pull latest image
+            docker pull bwnguyenvu/adsmanager:latest
+            
+            # Stop and remove existing container
+            docker stop facebook-ads-manager-container || true
+            docker rm facebook-ads-manager-container || true
+            
+            # Run new container with secrets as environment variables
+            docker run -d --name facebook-ads-manager-container \
+              --restart unless-stopped \
+              -p 3089:3089 \
+              -e NODE_ENV=production \
+              -e PORT=3089 \
+              -e HOSTNAME=0.0.0.0 \
+              -e MONGODB_URI="${{ secrets.MONGODB_URI }}" \
+              -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+              -e FACEBOOK_APP_ID="${{ secrets.FACEBOOK_APP_ID }}" \
+              -e FACEBOOK_APP_SECRET="${{ secrets.FACEBOOK_APP_SECRET }}" \
+              -e NEXT_PUBLIC_APP_URL="${{ secrets.NEXT_PUBLIC_APP_URL }}" \
+              -e NEXTAUTH_URL="${{ secrets.NEXTAUTH_URL }}" \
+              -e NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}" \
+              bwnguyenvu/adsmanager:latest
+            
+            # Clean up old images
+            docker image prune -f
+
+      - name: Cleanup old Docker images
+        run: |
+          # Keep only the latest 3 images
+          docker images bwnguyenvu/adsmanager --format "table {{.Repository}}:{{.Tag}}\t{{.CreatedAt}}" | tail -n +2 | head -n -3 | awk '{print $1}' | xargs -r docker rmi || true

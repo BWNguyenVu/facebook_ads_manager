@@ -1,0 +1,4 @@
+name,page_id,post_id,access_token,daily_budget,age_min,age_max,start_time,end_time,account_id,campaign_objective,optimization_goal,bid_strategy,billing_event
+Campaign Test,="104882489141131",="724361597203916",YOUR_ACCESS_TOKEN,50000,18,45,2025-07-01T00:00:00+0700,2025-07-10T00:00:00+0700,="568800062218281",Outcome Engagement,Post Engagement,Automatic,Impressions
+Campaign Test 2,="104882489141131",="724361597203916",YOUR_ACCESS_TOKEN,75000,25,55,2025-07-05T00:00:00+0700,2025-07-15T00:00:00+0700,="568800062218281",outcome leads,link clicks,cost cap,clicks
+Campaign Test 3,="104882489141131",="724361597203916",YOUR_ACCESS_TOKEN,100000,30,60,2025-07-10T00:00:00+0700,2025-07-20T00:00:00+0700,="568800062218281",Sales,Conversions,Target Cost,Actions

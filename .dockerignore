@@ -3,6 +3,10 @@ node_modules
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+yarn.lock
+
+# Keep package-lock.json for npm
+!package-lock.json
 
 # Next.js
 .next/

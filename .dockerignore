@@ -28,9 +28,11 @@ dist/
 README.md
 PRODUCTION_README.md
 GITHUB_SECRETS_SETUP.md
+BUILD_ERRORS_FIX.md
 docs/
 generate-secrets.sh
 generate-secrets.ps1
+fix-build-errors.sh
 
 # Documentation
 README.md

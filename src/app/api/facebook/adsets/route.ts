@@ -55,7 +55,6 @@ export async function GET(request: NextRequest) {
       url += `&before=${encodeURIComponent(before)}`;
     }
 
-    console.log('Fetching adsets from:', url.replace(accessToken, '[HIDDEN]'));
 
     const response = await fetch(url);
     
@@ -69,7 +68,6 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
-    console.log(`Fetched ${data.data?.length || 0} adsets for campaign ${campaignId}`);
 
     return NextResponse.json(data);
   } catch (error: any) {

@@ -36,13 +36,6 @@ export async function GET(request: NextRequest) {
     const cleanAccountId = accountId.replace('act_', '');
     const fbAccountId = `act_${cleanAccountId}`;
 
-    console.log('Fetching insights for account:', {
-      original: accountId,
-      cleaned: cleanAccountId,
-      formatted: fbAccountId,
-      datePreset,
-      fields
-    });
 
     // Test different account ID formats if the first one fails
     const accountFormats = [
@@ -55,7 +48,6 @@ export async function GET(request: NextRequest) {
     
     for (const accountFormat of accountFormats) {
       try {
-        console.log(`Trying account format: ${accountFormat}`);
         
         // Facebook Graph API call
         const fbUrl = new URL(`https://graph.facebook.com/v17.0/${accountFormat}/insights`);
@@ -63,7 +55,6 @@ export async function GET(request: NextRequest) {
         fbUrl.searchParams.set('level', 'account');
         fbUrl.searchParams.set('fields', fields);
         fbUrl.searchParams.set('date_preset', datePreset);
-        console.log('Facebook API URL:', fbUrl.toString().replace(accessToken, '[REDACTED]'));
 
         const response = await fetch(fbUrl.toString(), {
           method: 'GET',
@@ -73,7 +64,6 @@ export async function GET(request: NextRequest) {
         });
         
         const responseText = await response.text();
-        console.log(`Facebook API raw response for ${accountFormat}:`, responseText);
         
         if (response.ok) {
           let data;
@@ -84,7 +74,6 @@ export async function GET(request: NextRequest) {
             throw new Error('Invalid JSON response from Facebook API');
           }
           
-          console.log('Account insights response:', data);
 
           return NextResponse.json({
             success: true,
@@ -100,7 +89,6 @@ export async function GET(request: NextRequest) {
             errorData = { error: { message: responseText } };
           }
           lastError = errorData;
-          console.log(`Format ${accountFormat} failed:`, errorData);
         }
       } catch (error: any) {
         console.error(`Error with account format ${accountFormat}:`, error);

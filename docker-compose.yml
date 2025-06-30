@@ -7,6 +7,8 @@ services:
     container_name: facebook_ads_manager
     ports:
       - "3089:3089"
+    volumes:
+      - ./logs:/app/logs
     environment:
       - NODE_ENV=production
       - PORT=3089
@@ -14,6 +16,7 @@ services:
       # These will be loaded from .env file or environment variables
       - MONGODB_URI=${MONGODB_URI:-mongodb://localhost:27017/facebook_ads_manager}
       - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-here-min-32-chars}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-your-32-char-encryption-key-here}
       - FACEBOOK_APP_ID=${FACEBOOK_APP_ID:-}
       - FACEBOOK_APP_SECRET=${FACEBOOK_APP_SECRET:-}
       - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-http://localhost:3089}

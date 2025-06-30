@@ -15,6 +15,7 @@ DOCKER_PASSWORD=your-dockerhub-password-or-token
 ```
 MONGODB_URI=mongodb://your-mongodb-host:27017/facebook_ads_manager
 JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters-long
+ENCRYPTION_KEY=your-32-character-encryption-key-for-facebook-credentials
 NEXTAUTH_SECRET=your-nextauth-secret-key-minimum-32-characters
 NEXT_PUBLIC_APP_URL=https://your-domain.com
 NEXTAUTH_URL=https://your-domain.com

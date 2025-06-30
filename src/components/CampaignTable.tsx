@@ -310,12 +310,10 @@ export function CampaignTable({
                             <div className="space-y-1">
                               {campaign.daily_budget ? (
                                 <div className="flex items-center space-x-1">
-                                  <DollarSign className="h-3 w-3 text-green-600" />
                                   <span className="text-sm font-medium">{formatCurrency(campaign.daily_budget)}/day</span>
                                 </div>
                               ) : campaign.lifetime_budget ? (
                                 <div className="flex items-center space-x-1">
-                                  <DollarSign className="h-3 w-3 text-blue-600" />
                                   <span className="text-sm font-medium">{formatCurrency(campaign.lifetime_budget)} total</span>
                                 </div>
                               ) : '—'}

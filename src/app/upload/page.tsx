@@ -63,12 +63,10 @@ export default function UploadPage() {
     }
 
     try {
-      console.log('Testing token:', accessToken.substring(0, 20) + '...');
       const response = await fetch(`https://graph.facebook.com/v23.0/me?access_token=${encodeURIComponent(accessToken)}`);
       const data = await response.json();
       
       if (response.ok) {
-        console.log('Token test successful:', data);
         alert(`Token is valid! User: ${data.name} (ID: ${data.id})`);
       } else {
         console.error('Token test failed:', data);
@@ -110,27 +108,14 @@ export default function UploadPage() {
       
       setAccessToken(cleanToken);
       setAccountId(selectedAccountId);
-      
-      // Enhanced debug log
-      console.log('=== TOKEN DEBUG ===');
-      console.log('Raw token from localStorage:', localStorage.getItem('long_lived_access_token'));
-      console.log('Token from session:', userSession?.long_lived_token);
-      console.log('Clean token:', cleanToken);
-      console.log('Token length:', cleanToken?.length);
-      console.log('Token starts with:', cleanToken?.substring(0, 20));
-      console.log('Token valid format:', /^[A-Za-z0-9_-]+$/.test(cleanToken || ''));
-      console.log('AccountId from session:', userSession?.selected_account?.account_id);
-      console.log('AccountId from config:', selectedAccountId);
-      console.log('Final values:', { accessToken: cleanToken, accountId: selectedAccountId });
+  
       
       // Check token expiry
       const tokenExpiry = localStorage.getItem('token_expires_at');
       if (tokenExpiry) {
         const expiryDate = new Date(tokenExpiry);
         const now = new Date();
-        console.log('Token expires at:', expiryDate);
-        console.log('Current time:', now);
-        console.log('Token expired:', expiryDate <= now);
+
       }
     }
   }, [userSession]);

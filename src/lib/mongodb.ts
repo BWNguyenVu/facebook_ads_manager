@@ -2,10 +2,13 @@ import { MongoClient, Db, Collection, ObjectId } from 'mongodb';
 import { CampaignLog } from '@/types/campaign';
 import { User, Account } from '@/types/user';
 import bcrypt from 'bcryptjs';
+import { createLogger } from '@/lib/logger';
 
 // MongoDB connection
 let client: MongoClient;
 let db: Db;
+
+const logger = createLogger('MongoDB');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
 const MONGODB_DB = process.env.MONGODB_DB || 'facebook_ads_manager';
@@ -20,10 +23,10 @@ export async function connectToDatabase(): Promise<{ db: Db; client: MongoClient
     await client.connect();
     db = client.db(MONGODB_DB);
     
-    console.log('Connected to MongoDB');
+    logger.info('Connected to MongoDB successfully');
     return { db, client };
   } catch (error) {
-    console.error('Failed to connect to MongoDB:', error);
+    logger.error('Failed to connect to MongoDB', error);
     throw error;
   }
 }
@@ -93,7 +96,7 @@ export class UserService {
     const collection = await this.getCollection();
     
     try {
-      console.log('Updating user:', userId, 'with updates:', Object.keys(updates));
+      logger.dbOperation('UPDATE', 'users', { userId, updates: Object.keys(updates) });
       
       // Convert userId string to ObjectId
       const objectId = new ObjectId(userId);
@@ -108,14 +111,14 @@ export class UserService {
         }
       );
 
-      console.log('Update result:', { 
+      logger.dbOperation('UPDATE_RESULT', 'users', { 
         matchedCount: result.matchedCount, 
         modifiedCount: result.modifiedCount 
       });
 
       return result.modifiedCount > 0;
     } catch (error) {
-      console.error('Error updating user:', error);
+      logger.error('Error updating user', error, { userId });
       throw error;
     }
   }
@@ -153,7 +156,7 @@ export class UserService {
     const collection = await this.getCollection();
     
     try {
-      console.log('Getting Facebook credentials for user:', userId);
+      logger.debug('Getting Facebook credentials for user', { userId });
       
       // Convert userId string to ObjectId
       const objectId = new ObjectId(userId);
@@ -172,11 +175,12 @@ export class UserService {
       );
       
       if (!user) {
-        console.log('User not found');
+        logger.warn('User not found when getting Facebook credentials', { userId });
         return null;
       }
       
-      console.log('Found credentials:', {
+      logger.debug('Found Facebook credentials', {
+        userId,
         has_app_id: !!user.facebook_app_id,
         has_app_secret: !!user.facebook_app_secret,
         has_short_token: !!user.facebook_short_lived_token,
@@ -192,7 +196,7 @@ export class UserService {
         token_expires_at: user.token_expires_at,
       };
     } catch (error) {
-      console.error('Error getting Facebook credentials:', error);
+      logger.error('Error getting Facebook credentials', error, { userId });
       throw error;
     }
   }

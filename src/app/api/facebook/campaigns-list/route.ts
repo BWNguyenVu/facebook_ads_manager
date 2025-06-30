@@ -71,7 +71,6 @@ export async function GET(request: NextRequest) {
 
     const facebookUrl = `https://graph.facebook.com/v21.0/act_${accountId}/campaigns?access_token=${encodeURIComponent(accessToken)}&fields=${fields}`;
 
-    console.log('Fetching campaigns from Facebook:', facebookUrl.replace(accessToken, '[TOKEN]'));
 
     const response = await fetch(facebookUrl);
 
@@ -90,7 +89,6 @@ export async function GET(request: NextRequest) {
 
     const data = await response.json();
     
-    console.log(`Successfully fetched ${data.data?.length || 0} campaigns`);
 
     return NextResponse.json({
       campaigns: data.data || [],

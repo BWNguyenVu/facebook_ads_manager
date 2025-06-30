@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createLogger } from '@/lib/logger';
 import { useRouter } from 'next/navigation';
 import { Layout } from '@/components/Layout';
 import { CampaignTable } from '@/components/CampaignTable';
@@ -24,6 +25,8 @@ import {
 
 type ViewMode = 'campaigns' | 'adsets';
 
+
+const logger = createLogger('CampaignsPage');
 export default function CampaignsPage() {
   const router = useRouter();
   const [userSession, setUserSession] = useState<UserSession | null>(null);
@@ -62,7 +65,7 @@ export default function CampaignsPage() {
         loadCampaigns();
       }
     } catch (error) {
-      console.error('Invalid session data:', error);
+      logger.error('Invalid session data:', error);
       router.push('/auth');
     }
   }, [router]);
@@ -92,7 +95,7 @@ export default function CampaignsPage() {
         const config = JSON.parse(savedConfig);
         return config.selected_account_id || '';
       } catch (e) {
-        console.error('Error parsing facebook_config:', e);
+        logger.error('Error parsing facebook_config:', e);
       }
     }
     
@@ -129,9 +132,9 @@ export default function CampaignsPage() {
 
       const data: FacebookCampaignResponse = await response.json();
       setCampaigns(data.data || []);
-      console.log(`Loaded ${data.data?.length || 0} campaigns`);
+      logger.debug(`Loaded ${data.data?.length || 0} campaigns`);
     } catch (error: any) {
-      console.error('Error loading campaigns:', error);
+      logger.error('Error loading campaigns:', error);
       setError(error.message || 'Failed to load campaigns');
     } finally {
       setCampaignsLoading(false);
@@ -169,9 +172,9 @@ export default function CampaignsPage() {
 
       const data: FacebookAdSetResponse = await response.json();
       setAdsets(data.data || []);
-      console.log(`Loaded ${data.data?.length || 0} ad sets for campaign ${campaign.name}`);
+      logger.debug(`Loaded ${data.data?.length || 0} ad sets for campaign ${campaign.name}`);
     } catch (error: any) {
-      console.error('Error loading ad sets:', error);
+      logger.error('Error loading ad sets:', error);
       setError(error.message || 'Failed to load ad sets');
       // Don't change view mode if loading failed
       setViewMode('campaigns');
@@ -190,12 +193,12 @@ export default function CampaignsPage() {
 
   const handleViewAds = (adset: FacebookAdSet) => {
     // TODO: Implement ads view
-    console.log('View ads for adset:', adset.name);
+    logger.debug('View ads for adset:', adset.name);
   };
 
   const handleStatusChange = async (id: string, newStatus: 'ACTIVE' | 'PAUSED') => {
     // TODO: Implement status change API
-    console.log(`Change status of ${id} to ${newStatus}`);
+    logger.debug(`Change status of ${id} to ${newStatus}`);
   };
 
   const handleLogout = () => {

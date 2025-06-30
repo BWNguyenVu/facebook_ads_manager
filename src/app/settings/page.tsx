@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createLogger } from '@/lib/logger';
 import { useRouter } from 'next/navigation';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,6 +46,8 @@ interface TokenInfo {
   };
 }
 
+
+const logger = createLogger('SettingsPage');
 export default function SettingsPage() {
   const router = useRouter();
   const [userSession, setUserSession] = useState<UserSession | null>(null);
@@ -89,7 +92,7 @@ export default function SettingsPage() {
       loadSelectedAccount();
       setIsLoading(false);
     } catch (error) {
-      console.error('Invalid session data:', error);
+      logger.error('Invalid session data:', error);
       router.push('/auth');
     }
   }, [router]);
@@ -110,95 +113,67 @@ export default function SettingsPage() {
   }, [error]);
 
   const loadConfig = async () => {
-    // Load from database first
+    logger.debug('Loading Facebook credentials from database...');
+    
     try {
       const token = localStorage.getItem('auth_token');
-      if (token) {
-        const response = await fetch('/api/user/facebook-credentials', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
+      if (!token) {
+        logger.debug('No auth token found');
+        return;
+      }
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.data.has_credentials) {
-            setConfig(prev => ({
-              ...prev,
-              app_id: data.data.facebook_app_id || '',
-              // Don't load app_secret and tokens for security, user will need to re-enter
-            }));
-            
-            // Update token info if available
-            if (data.data.long_lived_token) {
-              setTokenInfo({
-                token: data.data.long_lived_token,
-                expires_at: data.data.token_expires_at || '',
-                is_valid: data.data.token_valid || false
-              });
-            }
-          }
+      const response = await fetch('/api/user/facebook-credentials', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      logger.debug('Credentials loaded from database:', {
+        success: data.success,
+        has_credentials: data.data?.has_credentials,
+        has_app_id: data.data?.has_app_id,
+        has_app_secret: data.data?.has_app_secret,
+        has_short_token: data.data?.has_short_token,
+        has_long_token: data.data?.has_long_token,
+      });
+
+      if (data.success && data.data) {
+        // Update config with data from database (masked for security)
+        setConfig(prev => ({
+          ...prev,
+          app_id: data.data.facebook_app_id || '',
+          app_secret: data.data.has_app_secret ? data.data.facebook_app_secret_masked || '••••••••••••••••' : '',
+          short_lived_token: data.data.has_short_token ? data.data.facebook_short_lived_token_masked || '••••••••••••••••' : '',
+        }));
+        
+        // Update token info if available
+        if (data.data.long_lived_token) {
+          setTokenInfo({
+            token: data.data.long_lived_token,
+            expires_at: data.data.token_expires_at || '',
+            is_valid: data.data.token_valid || false
+          });
+        }
+
+        // Show status
+        if (data.data.has_credentials) {
+          setSuccess('Credentials loaded from database successfully');
         }
       }
     } catch (error) {
-      console.error('Error loading credentials from database:', error);
-    }
-
-    // Fallback to localStorage for any missing data
-    const savedConfig = localStorage.getItem('facebook_config');
-    if (savedConfig) {
-      try {
-        const parsed = JSON.parse(savedConfig);
-        setConfig(prev => ({
-          app_id: prev.app_id || parsed.app_id || '',
-          app_secret: parsed.app_secret || '',
-          short_lived_token: parsed.short_lived_token || '',
-          default_account_id: parsed.default_account_id || ''
-        }));
-      } catch (error) {
-        console.error('Error parsing localStorage config:', error);
-      }
+      logger.error('Error loading credentials from database:', error);
+      setError('Failed to load credentials from database');
     }
   };
 
   const loadTokenInfo = async () => {
-    // Try to load from database first
-    try {
-      const token = localStorage.getItem('auth_token');
-      if (token) {
-        const response = await fetch('/api/user/facebook-credentials', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.data.long_lived_token) {
-            setTokenInfo({
-              token: data.data.long_lived_token,
-              expires_at: data.data.token_expires_at || '',
-              is_valid: data.data.token_valid || false
-            });
-            return;
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error loading token from database:', error);
-    }
-
-    // Fallback to localStorage
-    const longLivedToken = localStorage.getItem('long_lived_access_token');
-    const tokenExpiry = localStorage.getItem('token_expires_at');
-    
-    if (longLivedToken) {
-      setTokenInfo({
-        token: longLivedToken,
-        expires_at: tokenExpiry || '',
-        is_valid: tokenExpiry ? new Date(tokenExpiry) > new Date() : false
-      });
-    }
+    // Load token info from database (already loaded in loadConfig)
+    logger.debug('Token info already loaded from database in loadConfig');
   };
 
   const loadUserAccounts = async () => {
@@ -217,7 +192,7 @@ export default function SettingsPage() {
         setAccounts(data.accounts || []);
       }
     } catch (error) {
-      console.error('Error loading accounts:', error);
+      logger.error('Error loading accounts:', error);
     }
   };
 
@@ -229,7 +204,7 @@ export default function SettingsPage() {
         const parsed = JSON.parse(savedConfig);
         setSelectedAccountId(parsed.default_account_id || '');
       } catch (error) {
-        console.error('Error loading selected account:', error);
+        logger.error('Error loading selected account:', error);
       }
     }
   };
@@ -250,7 +225,7 @@ export default function SettingsPage() {
         throw new Error('Authentication token not found. Please login again.');
       }
 
-      console.log('Saving credentials to database...', {
+      logger.debug('Saving credentials to database...', {
         app_id: config.app_id,
         has_secret: !!config.app_secret,
         has_short_token: !!config.short_lived_token
@@ -269,22 +244,22 @@ export default function SettingsPage() {
         }),
       });
 
-      console.log('Database save response status:', response.status);
+      logger.debug('Database save response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-        console.error('Database save error:', errorData);
+        logger.error('Database save error:', errorData);
         throw new Error(errorData.message || `Server error: ${response.status}`);
       }
 
       const responseData = await response.json();
-      console.log('Database save success:', responseData);
+      logger.debug('Database save success:', responseData);
 
       // Also save to localStorage as backup
       localStorage.setItem('facebook_config', JSON.stringify(config));
       setSuccess('Configuration saved successfully to database!');
     } catch (error: any) {
-      console.error('Save config error details:', {
+      logger.error('Save config error details:', {
         message: error.message,
         stack: error.stack,
         config: {
@@ -333,13 +308,13 @@ export default function SettingsPage() {
         // Clean and validate the token
         const cleanToken = data.access_token?.trim();
         
-        console.log('=== TOKEN EXCHANGE DEBUG ===');
-        console.log('Original token:', data.access_token);
-        console.log('Clean token:', cleanToken);
-        console.log('Token length:', cleanToken?.length);
-        console.log('Token format valid:', /^[A-Za-z0-9_-]+$/.test(cleanToken || ''));
-        console.log('Expires in seconds:', data.expires_in);
-        console.log('Expires at:', expiresAt);
+        logger.debug('=== TOKEN EXCHANGE DEBUG ===');
+        logger.debug('Original token:', data.access_token);
+        logger.debug('Clean token:', cleanToken);
+        logger.debug('Token length:', cleanToken?.length);
+        logger.debug('Token format valid:', /^[A-Za-z0-9_-]+$/.test(cleanToken || ''));
+        logger.debug('Expires in seconds:', data.expires_in);
+        logger.debug('Expires at:', expiresAt);
         
         // Save long-lived token to localStorage and database
         localStorage.setItem('long_lived_access_token', cleanToken);
@@ -365,10 +340,10 @@ export default function SettingsPage() {
             });
 
             if (!dbResponse.ok) {
-              console.error('Failed to save token to database');
+              logger.error('Failed to save token to database');
             }
           } catch (dbError) {
-            console.error('Database save error:', dbError);
+            logger.error('Database save error:', dbError);
           }
         }
 
@@ -430,7 +405,7 @@ export default function SettingsPage() {
         }
       }
     } catch (error) {
-      console.error('Error syncing accounts:', error);
+      logger.error('Error syncing accounts:', error);
     }
   };
 
@@ -675,6 +650,18 @@ export default function SettingsPage() {
           </TabsList>
 
           <TabsContent value="facebook" className="space-y-6">
+            {/* Database load status */}
+            {config.app_secret && config.app_secret.includes('••••') && (
+              <Alert>
+                <CheckCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Loaded from Database:</strong> Your credentials are securely loaded from the database. 
+                  Sensitive data is encrypted and displayed with masking (••••••••) for security. 
+                  To update credentials, enter new values and save.
+                </AlertDescription>
+              </Alert>
+            )}
+            
             {/* Multi-device info card */}
             <Alert>
               <CheckCircle className="h-4 w-4" />
@@ -811,10 +798,10 @@ export default function SettingsPage() {
                           headers: { 'Authorization': `Bearer ${token}` }
                         });
                         const data = await response.json();
-                        console.log('Debug info:', data);
+                        logger.debug('Debug info:', data);
                         alert(JSON.stringify(data, null, 2));
                       } catch (e) {
-                        console.error('Debug error:', e);
+                        logger.error('Debug error:', e);
                         const errorMsg = e instanceof Error ? e.message : 'Unknown error';
                         alert('Debug failed: ' + errorMsg);
                       }

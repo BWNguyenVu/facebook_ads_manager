@@ -80,7 +80,6 @@ export default function PreviewPage() {
   };
 
   const handleCampaignComplete = (results: any[]) => {
-    console.log('Campaigns completed:', results);
     // Optionally redirect to logs or stats
     // router.push('/logs');
   };
@@ -97,7 +96,6 @@ export default function PreviewPage() {
 
   const handleEditCampaign = (index: number) => {
     // TODO: Implement edit functionality
-    console.log('Edit campaign at index:', index);
   };
 
   const handleRemoveCampaign = (index: number) => {

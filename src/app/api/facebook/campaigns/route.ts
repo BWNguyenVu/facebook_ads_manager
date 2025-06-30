@@ -5,10 +5,7 @@ import { getSessionFromRequest } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('=== FACEBOOK CAMPAIGNS API CALLED ===');
-    console.log('Request method:', request.method);
-    console.log('Request URL:', request.url);
-    console.log('Request headers:', Object.fromEntries(request.headers.entries()));
+
 
     // Get user session from JWT
     const session = await getSessionFromRequest(request);
@@ -19,22 +16,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('User session found:', { user_id: session.user_id, email: session.email });
-
     const body = await request.json();
-    console.log('=== REQUEST BODY RECEIVED ===');
-    console.log('Full body:', JSON.stringify(body, null, 2));
-    
     const { campaigns, accountId, accessToken } = body;
-
-    console.log('=== EXTRACTED FIELDS ===');
-    console.log('Received accessToken preview:', accessToken?.substring(0, 30) + '...');
-    console.log('Received accessToken length:', accessToken?.length);
-    console.log('Received accountId:', accountId);
-    console.log('Campaigns count:', campaigns?.length);
-    console.log('Campaigns data:', campaigns);
-    console.log('User ID from session:', session.user_id);
-    console.log('================================');
 
     if (!campaigns || !Array.isArray(campaigns) || !accountId || !accessToken) {
       const missingFields = [];
@@ -66,10 +49,8 @@ export async function POST(request: NextRequest) {
     
     try {
       const facebookApi = new FacebookAPI(cleanToken);
-      console.log('FacebookAPI instance created successfully');
       
       // Test the token first
-      console.log('Testing access token...');
       const testResponse = await fetch(`https://graph.facebook.com/v23.0/me?access_token=${encodeURIComponent(cleanToken)}`);
       if (!testResponse.ok) {
         const testError = await testResponse.json();
@@ -80,7 +61,6 @@ export async function POST(request: NextRequest) {
         );
       }
       const testData = await testResponse.json();
-      console.log('Token test successful. User:', testData.name);
     } catch (tokenError) {
       console.error('Token validation error:', tokenError);
       return NextResponse.json(
@@ -103,7 +83,6 @@ export async function POST(request: NextRequest) {
           daily_budget: campaignData.daily_budget ? parseFloat(campaignData.daily_budget.toString()) : undefined
         });
 
-        console.log('Created log with user_id:', session.user_id, 'log_id:', log._id);
 
         // Create full campaign
         const campaignResult = await createFullCampaign(

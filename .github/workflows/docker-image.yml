@@ -57,11 +57,13 @@ jobs:
             docker run -d --name facebook-ads-manager-container \
               --restart unless-stopped \
               -p 3089:3089 \
+              -v /var/log/facebook-ads-manager:/app/logs \
               -e NODE_ENV=production \
               -e PORT=3089 \
               -e HOSTNAME=0.0.0.0 \
               -e MONGODB_URI="${{ secrets.MONGODB_URI }}" \
               -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+              -e ENCRYPTION_KEY="${{ secrets.ENCRYPTION_KEY }}" \
               -e FACEBOOK_APP_ID="${{ secrets.FACEBOOK_APP_ID }}" \
               -e FACEBOOK_APP_SECRET="${{ secrets.FACEBOOK_APP_SECRET }}" \
               -e NEXT_PUBLIC_APP_URL="${{ secrets.NEXT_PUBLIC_APP_URL }}" \

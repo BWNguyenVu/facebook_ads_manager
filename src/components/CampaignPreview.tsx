@@ -152,9 +152,7 @@ export function CampaignPreview({ campaigns, onEdit, onRemove }: CampaignPreview
               {/* Budget & Schedule */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
                 <div className="flex items-center space-x-4 p-4 lg:p-6 bg-green-50/80 backdrop-blur-sm rounded-2xl border border-green-200/30 hover:shadow-lg transition-all duration-300">
-                  <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg">
-                    <DollarSign className="h-5 w-5 lg:h-6 lg:w-6 text-white" />
-                  </div>
+                 
                   <div>
                     <p className="text-sm text-gray-600 font-medium">Daily Budget</p>
                     <p className="text-lg lg:text-xl font-bold bg-gradient-to-r from-green-600 to-green-800 bg-clip-text text-transparent">

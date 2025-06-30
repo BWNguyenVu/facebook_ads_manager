@@ -89,7 +89,6 @@ export default function DashboardPage() {
         ? `/api/mongodb/basic-stats?account_id=${accountId}`
         : '/api/mongodb/basic-stats';
       
-      console.log('Loading basic stats from:', url, 'with user_id:', userSession.user_id);
       
       const response = await fetch(url, {
         headers: {
@@ -99,8 +98,6 @@ export default function DashboardPage() {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Basic stats loaded successfully:', data);
-        console.log('Stats structure:', JSON.stringify(data.stats, null, 2));
         setStats(data.stats);
       } else {
         const errorData = await response.json();
@@ -137,7 +134,6 @@ export default function DashboardPage() {
   };
 
   const handleCampaignComplete = (results: any[]) => {
-    console.log('Campaigns completed:', results);
     // Reload stats after completion
     const token = localStorage.getItem('auth_token');
     if (token && userSession) {

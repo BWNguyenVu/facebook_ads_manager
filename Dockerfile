@@ -26,6 +26,9 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+# Create logs directory with proper permissions
+RUN mkdir -p /app/logs && chown -R nextjs:nodejs /app/logs
+
 # Copy necessary files from builder stage
 COPY --from=builder /app/next.config.ts ./
 COPY --from=builder /app/public ./public

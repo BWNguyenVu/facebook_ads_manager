@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createLogger } from '@/lib/logger';
+
+const logger = createLogger('HealthCheck');
 
 export async function GET(_request: NextRequest) {
   try {
@@ -13,7 +16,7 @@ export async function GET(_request: NextRequest) {
 
     return NextResponse.json(health, { status: 200 });
   } catch (error) {
-    console.error('Health check failed:', error);
+    logger.error('Health check failed', error);
     
     return NextResponse.json(
       { 

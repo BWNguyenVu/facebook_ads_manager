@@ -3,14 +3,11 @@ import { getSessionFromRequest } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('Debug token API called');
     
     // Get user session from JWT
     const session = await getSessionFromRequest(request);
-    console.log('Session:', session ? 'Valid session found' : 'No session');
     
     if (!session) {
-      console.log('No session found, returning 401');
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -21,42 +18,36 @@ export async function GET(request: NextRequest) {
     const accessToken = searchParams.get('access_token');
 
     if (!accessToken) {
-      console.log('No access token provided');
       return NextResponse.json(
         { error: 'Access token is required' },
         { status: 400 }
       );
     }
 
-    console.log('Debugging access token...');
 
     // 1. Test basic me endpoint
     const meUrl = `https://graph.facebook.com/v17.0/me?access_token=${accessToken}&fields=id,name,email`;
     const meResponse = await fetch(meUrl);
     const meData = await meResponse.json();
 
-    console.log('Me endpoint response:', meData);
 
     // 2. Test token info
     const tokenInfoUrl = `https://graph.facebook.com/v17.0/me?access_token=${accessToken}&fields=id,name&metadata=1`;
     const tokenInfoResponse = await fetch(tokenInfoUrl);
     const tokenInfoData = await tokenInfoResponse.json();
 
-    console.log('Token info response:', tokenInfoData);
 
     // 3. Test ad accounts access
     const adAccountsUrl = `https://graph.facebook.com/v17.0/me/adaccounts?access_token=${accessToken}&fields=account_id,name,account_status,business,currency`;
     const adAccountsResponse = await fetch(adAccountsUrl);
     const adAccountsData = await adAccountsResponse.json();
 
-    console.log('Ad accounts response:', adAccountsData);
 
     // 4. Test permissions
     const permissionsUrl = `https://graph.facebook.com/v17.0/me/permissions?access_token=${accessToken}`;
     const permissionsResponse = await fetch(permissionsUrl);
     const permissionsData = await permissionsResponse.json();
 
-    console.log('Permissions response:', permissionsData);
 
     // 5. Test insights access on first ad account if available
     let insightsTest = null;
@@ -67,7 +58,6 @@ export async function GET(request: NextRequest) {
       
       try {
         const insightsUrl = `https://graph.facebook.com/v17.0/${fbAccountId}/insights?access_token=${accessToken}&level=account&fields=spend&date_preset=today`;
-        console.log(`Testing insights for account: ${insightsUrl.replace(accessToken, '[REDACTED]')}`);
         const insightsResponse = await fetch(insightsUrl);
         const insightsData = await insightsResponse.json();
         

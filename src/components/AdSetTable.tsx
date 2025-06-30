@@ -230,12 +230,10 @@ export function AdSetTable({
                             <div className="space-y-1">
                               {adset.daily_budget ? (
                                 <div className="flex items-center space-x-1">
-                                  <DollarSign className="h-3 w-3" />
                                   <span className="text-sm">{formatCurrency(adset.daily_budget)}/day</span>
                                 </div>
                               ) : adset.lifetime_budget ? (
                                 <div className="flex items-center space-x-1">
-                                  <DollarSign className="h-3 w-3" />
                                   <span className="text-sm">{formatCurrency(adset.lifetime_budget)} total</span>
                                 </div>
                               ) : '—'}

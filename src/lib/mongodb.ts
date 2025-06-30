@@ -95,8 +95,11 @@ export class UserService {
     try {
       console.log('Updating user:', userId, 'with updates:', Object.keys(updates));
       
+      // Convert userId string to ObjectId
+      const objectId = new ObjectId(userId);
+      
       const result = await collection.updateOne(
-        { _id: userId } as any,
+        { _id: objectId } as any,
         { 
           $set: { 
             ...updates, 
@@ -152,8 +155,11 @@ export class UserService {
     try {
       console.log('Getting Facebook credentials for user:', userId);
       
+      // Convert userId string to ObjectId
+      const objectId = new ObjectId(userId);
+      
       const user = await collection.findOne(
-        { _id: userId } as any,
+        { _id: objectId } as any,
         { 
           projection: { 
             facebook_app_id: 1, 
@@ -253,8 +259,9 @@ export class AccountService {
   async updateAccount(accountId: string, updates: Partial<Account>): Promise<boolean> {
     const collection = await this.getCollection();
     
+    const objectId = new ObjectId(accountId);
     const result = await collection.updateOne(
-      { _id: accountId as any },
+      { _id: objectId } as any,
       { 
         $set: { 
           ...updates, 
@@ -327,7 +334,8 @@ export class CampaignLogService {
 
   async getLogById(id: string): Promise<CampaignLog | null> {
     const collection = await this.getCollection();
-    return await collection.findOne({ _id: id as any });
+    const objectId = new ObjectId(id);
+    return await collection.findOne({ _id: objectId } as any);
   }
 
   async getAllLogs(limit: number = 100, skip: number = 0): Promise<CampaignLog[]> {

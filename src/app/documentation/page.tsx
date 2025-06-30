@@ -287,9 +287,10 @@ export default function DocumentationPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview">Tổng Quan</TabsTrigger>
             <TabsTrigger value="setup">Cài Đặt</TabsTrigger>
+            <TabsTrigger value="csv-guide">CSV Enums</TabsTrigger>
             <TabsTrigger value="campaigns">Tạo Chiến Dịch</TabsTrigger>
             <TabsTrigger value="tips">Mẹo & Thủ Thuật</TabsTrigger>
           </TabsList>
@@ -654,6 +655,496 @@ export default function DocumentationPage() {
                     <p className="text-sm">
                       <strong>Giải pháp:</strong> Liên hệ admin Business Manager để cấp quyền hoặc tạo tài khoản quảng cáo mới
                     </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="csv-guide" className="space-y-6">
+            {/* CSV Enums Guide */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-blue-600" />
+                  Hướng Dẫn Các Enum Cho File CSV
+                </CardTitle>
+                <CardDescription>
+                  Giải thích chi tiết các giá trị enum trong file CSV để tạo chiến dịch quảng cáo
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {/* Introduction */}
+                  <div className="bg-blue-50 p-4 rounded-md">
+                    <h3 className="font-semibold text-blue-800 mb-2">📝 Giới Thiệu</h3>
+                    <p className="text-sm text-blue-700">
+                      Khi tạo chiến dịch từ file CSV, bạn cần sử dụng các giá trị enum chính xác theo chuẩn của Facebook. 
+                      Trang này sẽ hướng dẫn chi tiết từng loại enum và cách sử dụng chúng trong file CSV.
+                    </p>
+                  </div>
+
+                  {/* Campaign Objective */}
+                  <div className="border rounded-lg p-6">
+                    <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                      <Target className="h-5 w-5 text-green-600" />
+                      1. Campaign Objective (Mục Tiêu Chiến Dịch)
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Mục tiêu chính của chiến dịch quảng cáo. Đây là trường <strong>bắt buộc</strong> trong file CSV.
+                    </p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-gray-50 p-4 rounded-md">
+                        <h4 className="font-semibold mb-3 text-green-700">✅ Các Giá Trị Hợp Lệ:</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <code className="bg-white px-2 py-1 rounded">OUTCOME_AWARENESS</code>
+                            <span className="text-gray-600">Nhận biết thương hiệu</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <code className="bg-white px-2 py-1 rounded">OUTCOME_TRAFFIC</code>
+                            <span className="text-gray-600">Tăng lưu lượng truy cập</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <code className="bg-white px-2 py-1 rounded">OUTCOME_ENGAGEMENT</code>
+                            <span className="text-gray-600">Tương tác</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <code className="bg-white px-2 py-1 rounded">OUTCOME_LEADS</code>
+                            <span className="text-gray-600">Thu thập khách hàng tiềm năng</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <code className="bg-white px-2 py-1 rounded">OUTCOME_SALES</code>
+                            <span className="text-gray-600">Tăng doanh số</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <code className="bg-white px-2 py-1 rounded">OUTCOME_APP_PROMOTION</code>
+                            <span className="text-gray-600">Quảng bá ứng dụng</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-blue-50 p-4 rounded-md">
+                        <h4 className="font-semibold mb-3 text-blue-700">💡 Khuyến Nghị Sử Dụng:</h4>
+                        <div className="space-y-3 text-sm">
+                          <div>
+                            <strong>OUTCOME_AWARENESS:</strong> Dành cho thương hiệu mới, muốn tăng độ nhận biết
+                          </div>
+                          <div>
+                            <strong>OUTCOME_TRAFFIC:</strong> Muốn tăng lượt truy cập website, blog
+                          </div>
+                          <div>
+                            <strong>OUTCOME_ENGAGEMENT:</strong> Tăng like, comment, share trên social media
+                          </div>
+                          <div>
+                            <strong>OUTCOME_LEADS:</strong> Thu thập email, SĐT, thông tin khách hàng
+                          </div>
+                          <div>
+                            <strong>OUTCOME_SALES:</strong> Bán hàng trực tiếp, e-commerce
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 bg-yellow-50 p-3 rounded-md">
+                      <h5 className="font-semibold text-yellow-700 mb-1">⚠️ Lưu Ý Quan Trọng:</h5>
+                      <p className="text-sm text-yellow-700">
+                        Objective quyết định các tùy chọn khác (optimization_goal, bid_strategy). 
+                        Chọn sai sẽ ảnh hưởng đến hiệu quả và chi phí quảng cáo.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Optimization Goal */}
+                  <div className="border rounded-lg p-6">
+                    <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                      <Zap className="h-5 w-5 text-yellow-600" />
+                      2. Optimization Goal (Mục Tiêu Tối Ưu)
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Facebook sẽ tối ưu hóa quảng cáo để đạt được mục tiêu này. Phải <strong>tương thích</strong> với Campaign Objective.
+                    </p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-gray-50 p-4 rounded-md">
+                        <h4 className="font-semibold mb-3 text-yellow-700">⚡ Các Giá Trị Phổ Biến:</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <code className="bg-white px-2 py-1 rounded">IMPRESSIONS</code>
+                            <span className="text-gray-600">Hiển thị tối đa</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <code className="bg-white px-2 py-1 rounded">REACH</code>
+                            <span className="text-gray-600">Tiếp cận người dùng duy nhất</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <code className="bg-white px-2 py-1 rounded">LINK_CLICKS</code>
+                            <span className="text-gray-600">Click vào link</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <code className="bg-white px-2 py-1 rounded">LANDING_PAGE_VIEWS</code>
+                            <span className="text-gray-600">Xem trang đích</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <code className="bg-white px-2 py-1 rounded">POST_ENGAGEMENT</code>
+                            <span className="text-gray-600">Tương tác bài viết</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <code className="bg-white px-2 py-1 rounded">LEAD_GENERATION</code>
+                            <span className="text-gray-600">Thu thập lead</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <code className="bg-white px-2 py-1 rounded">OFFSITE_CONVERSIONS</code>
+                            <span className="text-gray-600">Chuyển đổi trên website</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-green-50 p-4 rounded-md">
+                        <h4 className="font-semibold mb-3 text-green-700">🎯 Ví Dụ Kết Hợp:</h4>
+                        <div className="space-y-3 text-sm">
+                          <div className="border-l-4 border-blue-500 pl-3">
+                            <strong>Objective:</strong> OUTCOME_AWARENESS<br/>
+                            <strong>Goal:</strong> IMPRESSIONS hoặc REACH
+                          </div>
+                          <div className="border-l-4 border-green-500 pl-3">
+                            <strong>Objective:</strong> OUTCOME_TRAFFIC<br/>
+                            <strong>Goal:</strong> LINK_CLICKS hoặc LANDING_PAGE_VIEWS
+                          </div>
+                          <div className="border-l-4 border-purple-500 pl-3">
+                            <strong>Objective:</strong> OUTCOME_LEADS<br/>
+                            <strong>Goal:</strong> LEAD_GENERATION
+                          </div>
+                          <div className="border-l-4 border-orange-500 pl-3">
+                            <strong>Objective:</strong> OUTCOME_SALES<br/>
+                            <strong>Goal:</strong> OFFSITE_CONVERSIONS
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bid Strategy */}
+                  <div className="border rounded-lg p-6">
+                    <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                      <DollarSign className="h-5 w-5 text-green-600" />
+                      3. Bid Strategy (Chiến Lược Đấu Giá)
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Cách Facebook đặt giá cho quảng cáo của bạn. Ảnh hưởng trực tiếp đến chi phí và hiệu quả.
+                    </p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-gray-50 p-4 rounded-md">
+                        <h4 className="font-semibold mb-3 text-green-700">💰 Các Chiến Lược Chính:</h4>
+                        <div className="space-y-3 text-sm">
+                          <div className="bg-white p-3 rounded border-l-4 border-green-500">
+                            <code className="font-semibold">LOWEST_COST_WITHOUT_CAP</code>
+                            <p className="text-gray-600 mt-1">Tự động tìm chi phí thấp nhất (Khuyến nghị cho người mới)</p>
+                          </div>
+                          <div className="bg-white p-3 rounded border-l-4 border-blue-500">
+                            <code className="font-semibold">LOWEST_COST_WITH_BID_CAP</code>
+                            <p className="text-gray-600 mt-1">Giới hạn giá đấu tối đa (Kiểm soát chi phí)</p>
+                          </div>
+                          <div className="bg-white p-3 rounded border-l-4 border-yellow-500">
+                            <code className="font-semibold">COST_CAP</code>
+                            <p className="text-gray-600 mt-1">Kiểm soát chi phí trung bình mỗi kết quả</p>
+                          </div>
+                          <div className="bg-white p-3 rounded border-l-4 border-purple-500">
+                            <code className="font-semibold">LOWEST_COST_WITH_MIN_ROAS</code>
+                            <p className="text-gray-600 mt-1">Đảm bảo ROAS tối thiểu (Cho bán hàng)</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-blue-50 p-4 rounded-md">
+                        <h4 className="font-semibold mb-3 text-blue-700">📋 Lựa Chọn Theo Trường Hợp:</h4>
+                        <div className="space-y-3 text-sm">
+                          <div>
+                            <strong className="text-green-600">Người mới bắt đầu:</strong><br/>
+                            <code>LOWEST_COST_WITHOUT_CAP</code><br/>
+                            <span className="text-gray-600">Facebook tự tối ưu, dễ sử dụng</span>
+                          </div>
+                          <div>
+                            <strong className="text-blue-600">Có ngân sách hạn chế:</strong><br/>
+                            <code>LOWEST_COST_WITH_BID_CAP</code><br/>
+                            <span className="text-gray-600">Kiểm soát tối đa chi phí mỗi click</span>
+                          </div>
+                          <div>
+                            <strong className="text-yellow-600">Mục tiêu CPA cố định:</strong><br/>
+                            <code>COST_CAP</code><br/>
+                            <span className="text-gray-600">Thích hợp cho lead generation</span>
+                          </div>
+                          <div>
+                            <strong className="text-purple-600">Bán hàng có margin:</strong><br/>
+                            <code>LOWEST_COST_WITH_MIN_ROAS</code><br/>
+                            <span className="text-gray-600">Đảm bảo lợi nhuận tối thiểu</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Billing Event */}
+                  <div className="border rounded-lg p-6">
+                    <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                      <MousePointer className="h-5 w-5 text-purple-600" />
+                      4. Billing Event (Sự Kiện Tính Phí)
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Facebook tính phí khi nào. Quyết định bạn trả tiền cho hành động gì của người dùng.
+                    </p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-gray-50 p-4 rounded-md">
+                        <h4 className="font-semibold mb-3 text-purple-700">💳 Các Loại Tính Phí:</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="bg-white p-3 rounded border-l-4 border-red-500">
+                            <code className="font-semibold">IMPRESSIONS</code>
+                            <p className="text-gray-600">Trả tiền khi quảng cáo được hiển thị (CPM)</p>
+                          </div>
+                          <div className="bg-white p-3 rounded border-l-4 border-blue-500">
+                            <code className="font-semibold">LINK_CLICKS</code>
+                            <p className="text-gray-600">Trả tiền khi có người click link (CPC)</p>
+                          </div>
+                          <div className="bg-white p-3 rounded border-l-4 border-green-500">
+                            <code className="font-semibold">POST_ENGAGEMENT</code>
+                            <p className="text-gray-600">Trả tiền khi có tương tác (like, comment, share)</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-yellow-50 p-4 rounded-md">
+                        <h4 className="font-semibold mb-3 text-yellow-700">🎯 Khi Nào Dùng:</h4>
+                        <div className="space-y-3 text-sm">
+                          <div>
+                            <strong>IMPRESSIONS (CPM):</strong><br/>
+                            • Brand awareness campaigns<br/>
+                            • Reach campaigns<br/>
+                            • Video view campaigns
+                          </div>
+                          <div>
+                            <strong>LINK_CLICKS (CPC):</strong><br/>
+                            • Traffic campaigns<br/>
+                            • Lead generation<br/>
+                            • E-commerce
+                          </div>
+                          <div>
+                            <strong>POST_ENGAGEMENT:</strong><br/>
+                            • Social engagement<br/>
+                            • Community building<br/>
+                            • Content promotion
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Destination Type */}
+                  <div className="border rounded-lg p-6">
+                    <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                      <ArrowRight className="h-5 w-5 text-orange-600" />
+                      5. Destination Type (Loại Đích Đến)
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Khi người dùng click vào quảng cáo, họ sẽ được chuyển đến đâu. Ảnh hưởng đến trải nghiệm người dùng.
+                    </p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-gray-50 p-4 rounded-md">
+                        <h4 className="font-semibold mb-3 text-orange-700">🔗 Các Đích Đến:</h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="bg-white p-3 rounded border-l-4 border-blue-500">
+                            <code className="font-semibold">WEBSITE</code>
+                            <p className="text-gray-600">Chuyển đến website/landing page bên ngoài</p>
+                          </div>
+                          <div className="bg-white p-3 rounded border-l-4 border-green-500">
+                            <code className="font-semibold">FACEBOOK_PAGE</code>
+                            <p className="text-gray-600">Chuyển đến Facebook Page của bạn</p>
+                          </div>
+                          <div className="bg-white p-3 rounded border-l-4 border-purple-500">
+                            <code className="font-semibold">ON_POST</code>
+                            <p className="text-gray-600">Ở lại trên bài post để tương tác</p>
+                          </div>
+                          <div className="bg-white p-3 rounded border-l-4 border-orange-500">
+                            <code className="font-semibold">APP</code>
+                            <p className="text-gray-600">Chuyển đến ứng dụng mobile</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-green-50 p-4 rounded-md">
+                        <h4 className="font-semibold mb-3 text-green-700">💡 Chọn Theo Mục Đích:</h4>
+                        <div className="space-y-3 text-sm">
+                          <div>
+                            <strong>WEBSITE:</strong><br/>
+                            • Bán hàng online<br/>
+                            • Lead generation<br/>
+                            • Blog traffic<br/>
+                            • Landing page campaigns
+                          </div>
+                          <div>
+                            <strong>FACEBOOK_PAGE:</strong><br/>
+                            • Tăng follower<br/>
+                            • Community building<br/>
+                            • Brand awareness
+                          </div>
+                          <div>
+                            <strong>ON_POST:</strong><br/>
+                            • Engagement campaigns<br/>
+                            • Video views<br/>
+                            • Social proof
+                          </div>
+                          <div>
+                            <strong>APP:</strong><br/>
+                            • App install campaigns<br/>
+                            • App engagement<br/>
+                            • Mobile gaming
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Date Format */}
+                  <div className="border rounded-lg p-6">
+                    <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                      <Activity className="h-5 w-5 text-red-600" />
+                      6. Start Time & End Time (Thời Gian Bắt Đầu & Kết Thúc)
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Định dạng thời gian để lên lịch chiến dịch. Phải tuân theo định dạng chuẩn ISO 8601.
+                    </p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-gray-50 p-4 rounded-md">
+                        <h4 className="font-semibold mb-3 text-red-700">📅 Định Dạng Chuẩn:</h4>
+                        <div className="space-y-3 text-sm">
+                          <div className="bg-white p-3 rounded border-l-4 border-blue-500">
+                            <strong>Định dạng:</strong><br/>
+                            <code>YYYY-MM-DDTHH:MM:SS+TIMEZONE</code>
+                          </div>
+                          <div className="bg-white p-3 rounded border-l-4 border-green-500">
+                            <strong>Ví dụ Việt Nam (+07:00):</strong><br/>
+                            <code>2024-01-15T09:00:00+07:00</code>
+                          </div>
+                          <div className="bg-white p-3 rounded border-l-4 border-yellow-500">
+                            <strong>Ví dụ UTC:</strong><br/>
+                            <code>2024-01-15T02:00:00+00:00</code>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-blue-50 p-4 rounded-md">
+                        <h4 className="font-semibold mb-3 text-blue-700">⏰ Mẹo Lên Lịch:</h4>
+                        <div className="space-y-3 text-sm">
+                          <div>
+                            <strong>Start Time:</strong><br/>
+                            • Có thể để trống để bắt đầu ngay<br/>
+                            • Hoặc lên lịch cho tương lai<br/>
+                            • Tính đúng timezone địa phương
+                          </div>
+                          <div>
+                            <strong>End Time:</strong><br/>
+                            • Có thể để trống để chạy liên tục<br/>
+                            • Hoặc đặt thời gian kết thúc cụ thể<br/>
+                            • Useful cho campaign có thời hạn
+                          </div>
+                          <div>
+                            <strong>Best Practice:</strong><br/>
+                            • Bắt đầu vào giờ cao điểm<br/>
+                            • Kết thúc trước khi ngân sách cạn<br/>
+                            • Để đủ thời gian để optimize
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CSV Template */}
+                  <div className="border rounded-lg p-6 bg-gradient-to-r from-blue-50 to-green-50">
+                    <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-blue-600" />
+                      7. Mẫu CSV Hoàn Chỉnh
+                    </h3>
+                    
+                    <div className="bg-white p-4 rounded-md border">
+                      <h4 className="font-semibold mb-3">📋 Ví Dụ File CSV:</h4>
+                      <div className="bg-gray-900 text-green-400 p-4 rounded-md font-mono text-sm overflow-x-auto">
+                        <div>campaign_name,campaign_objective,optimization_goal,bid_strategy,billing_event,destination_type,start_time,end_time</div>
+                        <div>Ao Thun Ban Hanģ,OUTCOME_SALES,OFFSITE_CONVERSIONS,LOWEST_COST_WITHOUT_CAP,LINK_CLICKS,WEBSITE,2024-01-15T09:00:00+07:00,2024-01-29T23:59:59+07:00</div>
+                        <div>Thu Thap Email,OUTCOME_LEADS,LEAD_GENERATION,COST_CAP,LINK_CLICKS,WEBSITE,2024-01-16T08:00:00+07:00,</div>
+                        <div>Tang Nhan Biet,OUTCOME_AWARENESS,REACH,LOWEST_COST_WITHOUT_CAP,IMPRESSIONS,FACEBOOK_PAGE,,</div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-green-50 p-4 rounded-md">
+                        <h5 className="font-semibold text-green-700 mb-2">✅ Lưu Ý Quan Trọng:</h5>
+                        <ul className="text-sm space-y-1">
+                          <li>• Header row phải chính xác</li>
+                          <li>• Không có khoảng trắng thừa</li>
+                          <li>• Sử dụng UTF-8 encoding</li>
+                          <li>• Kiểm tra tương thích enum</li>
+                          <li>• Test với ít row trước</li>
+                        </ul>
+                      </div>
+                      
+                      <div className="bg-yellow-50 p-4 rounded-md">
+                        <h5 className="font-semibold text-yellow-700 mb-2">⚠️ Tránh Những Lỗi Này:</h5>
+                        <ul className="text-sm space-y-1">
+                          <li>• Viết sai enum values</li>
+                          <li>• Kết hợp objective-goal không tương thích</li>
+                          <li>• Định dạng thời gian sai</li>
+                          <li>• Thiếu dấu phẩy trong CSV</li>
+                          <li>• Special characters không escape</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Validation Tool */}
+                  <div className="border rounded-lg p-6 bg-gradient-to-r from-purple-50 to-blue-50">
+                    <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5 text-purple-600" />
+                      8. Công Cụ Kiểm Tra Tự Động
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Hệ thống sẽ tự động kiểm tra và đề xuất sửa lỗi khi bạn upload file CSV.
+                    </p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-white p-4 rounded-md border-l-4 border-green-500">
+                        <h4 className="font-semibold text-green-700 mb-2">✅ Kiểm Tra Tự Động</h4>
+                        <ul className="text-sm space-y-1">
+                          <li>• Enum values hợp lệ</li>
+                          <li>• Tương thích objective-goal</li>
+                          <li>• Định dạng thời gian</li>
+                          <li>• Required fields</li>
+                        </ul>
+                      </div>
+                      
+                      <div className="bg-white p-4 rounded-md border-l-4 border-blue-500">
+                        <h4 className="font-semibold text-blue-700 mb-2">🔧 Sửa Lỗi Tự Động</h4>
+                        <ul className="text-sm space-y-1">
+                          <li>• Map tiếng Việt sang enum</li>
+                          <li>• Suggest compatible goals</li>
+                          <li>• Default bid strategy</li>
+                          <li>• Clean up data</li>
+                        </ul>
+                      </div>
+                      
+                      <div className="bg-white p-4 rounded-md border-l-4 border-purple-500">
+                        <h4 className="font-semibold text-purple-700 mb-2">💡 Đề Xuất Tối Ưu</h4>
+                        <ul className="text-sm space-y-1">
+                          <li>• Best practice settings</li>
+                          <li>• Budget recommendations</li>
+                          <li>• Timing suggestions</li>
+                          <li>• Performance tips</li>
+                        </ul>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </CardContent>

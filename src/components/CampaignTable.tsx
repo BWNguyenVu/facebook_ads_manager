@@ -5,6 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { CampaignStatusBadge } from './CampaignStatusBadge';
+import { CampaignToggle } from './CampaignToggle';
 import { 
   Search, 
   Eye, 
@@ -17,17 +20,22 @@ import {
   TrendingUp,
   TrendingDown,
   Activity,
-  RefreshCw
+  RefreshCw,
+  Filter
 } from 'lucide-react';
-import { FacebookCampaign } from '@/types/facebook-campaign';
+import { FacebookCampaign, FacebookCampaignWithInsights } from '@/types/facebook-campaign';
 
 interface CampaignTableProps {
-  campaigns: FacebookCampaign[];
+  campaigns: FacebookCampaignWithInsights[];
   isLoading: boolean;
-  onViewDetails: (campaign: FacebookCampaign) => void;
+  onViewDetails: (campaign: FacebookCampaignWithInsights) => void;
   onRefresh: () => void;
   onStatusChange?: (campaignId: string, newStatus: 'ACTIVE' | 'PAUSED') => void;
+  onRefreshAfterUpdate?: () => void;
+  onDatePresetChange?: (datePreset: string) => void;
   userSession?: any;
+  accessToken?: string;
+  currentDatePreset?: string;
 }
 
 export function CampaignTable({ 
@@ -36,36 +44,54 @@ export function CampaignTable({
   onViewDetails, 
   onRefresh,
   onStatusChange,
-  userSession 
+  onRefreshAfterUpdate,
+  onDatePresetChange,
+  userSession,
+  accessToken = '',
+  currentDatePreset = 'last_7d'
 }: CampaignTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  
-  const filteredCampaigns = campaigns.filter(campaign =>
-    campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    campaign.id.includes(searchTerm) ||
-    campaign.objective?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [spendFilter, setSpendFilter] = useState<string>('all');
+  const [datePreset, setDatePreset] = useState<string>(currentDatePreset);
 
-  const getStatusBadge = (status: string, effectiveStatus: string) => {
-    const displayStatus = effectiveStatus || status;
-    
-    switch (displayStatus) {
-      case 'ACTIVE':
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
-      case 'PAUSED':
-        return <Badge className="bg-yellow-100 text-yellow-800">Paused</Badge>;
-      case 'DELETED':
-        return <Badge className="bg-red-100 text-red-800">Deleted</Badge>;
-      case 'ARCHIVED':
-        return <Badge className="bg-gray-100 text-gray-800">Archived</Badge>;
-      case 'PENDING_REVIEW':
-        return <Badge className="bg-blue-100 text-blue-800">Pending Review</Badge>;
-      case 'DISAPPROVED':
-        return <Badge className="bg-red-100 text-red-800">Disapproved</Badge>;
-      default:
-        return <Badge variant="outline">{displayStatus}</Badge>;
+  // Handle date preset change
+  const handleDatePresetChange = (newDatePreset: string) => {
+    setDatePreset(newDatePreset);
+    if (onDatePresetChange) {
+      onDatePresetChange(newDatePreset);
     }
   };
+  
+  const filteredCampaigns = campaigns.filter(campaign => {
+    // Search filter
+    const matchesSearch = campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      campaign.id.includes(searchTerm) ||
+      campaign.objective?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Status filter
+    const matchesStatus = statusFilter === 'all' || 
+      (campaign.effective_status || campaign.status).toUpperCase() === statusFilter.toUpperCase();
+    
+    // Spend filter
+    let matchesSpend = true;
+    if (spendFilter !== 'all' && campaign.insights?.spend) {
+      const spend = parseFloat(campaign.insights.spend);
+      switch (spendFilter) {
+        case 'low':
+          matchesSpend = spend < 100000; // < 100k VND
+          break;
+        case 'medium':
+          matchesSpend = spend >= 100000 && spend < 1000000; // 100k - 1M VND
+          break;
+        case 'high':
+          matchesSpend = spend >= 1000000; // >= 1M VND
+          break;
+      }
+    }
+    
+    return matchesSearch && matchesStatus && matchesSpend;
+  });
 
   const getObjectiveBadge = (objective: string) => {
     const objectiveMap: Record<string, { label: string; color: string }> = {
@@ -122,17 +148,53 @@ export function CampaignTable({
     });
   };
 
+  const formatNumber = (num: string | number) => {
+    if (!num) return '—';
+    const number = typeof num === 'string' ? parseFloat(num) : num;
+    return new Intl.NumberFormat('vi-VN').format(number);
+  };
+
+  const formatMetric = (value: string | undefined, suffix = '') => {
+    if (!value) return '—';
+    const num = parseFloat(value);
+    if (isNaN(num)) return '—';
+    return `${formatNumber(num)}${suffix}`;
+  };
+
+  const getConversions = (actions: any[]) => {
+    if (!actions || !Array.isArray(actions)) return 0;
+    const conversionActions = ['purchase', 'lead', 'onsite_conversion.purchase', 'onsite_conversion.lead'];
+    return actions
+      .filter(action => conversionActions.some(type => action.action_type.includes(type)))
+      .reduce((sum, action) => sum + parseInt(action.value || '0'), 0);
+  };
+
+  const getDatePresetLabel = (preset: string) => {
+    const labels: Record<string, string> = {
+      'today': 'Today',
+      'yesterday': 'Yesterday',
+      'last_3d': 'Last 3 Days',
+      'last_7d': 'Last 7 Days',
+      'last_14d': 'Last 14 Days',
+      'last_28d': 'Last 28 Days',
+      'last_30d': 'Last 30 Days',
+      'last_90d': 'Last 90 Days',
+      'this_week_mon_today': 'This Week',
+      'last_week_mon_sun': 'Last Week',
+      'this_month': 'This Month',
+      'last_month': 'Last Month',
+      'this_quarter': 'This Quarter',
+      'last_quarter': 'Last Quarter',
+      'this_year': 'This Year',
+      'last_year': 'Last Year'
+    };
+    return labels[preset] || preset;
+  };
+
   if (isLoading) {
     return (
       <Card className="bg-white/70 backdrop-blur-lg border-white/20 shadow-xl rounded-2xl">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center space-x-3 text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-            <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
-              <Activity className="h-6 w-6 text-white" />
-            </div>
-            <span>Campaign Management</span>
-          </CardTitle>
-        </CardHeader>
+       
         <CardContent className="flex items-center justify-center h-40">
           <div className="text-center">
             <div className="relative">
@@ -152,50 +214,10 @@ export function CampaignTable({
   return (
     <div className="w-full space-y-6 lg:space-y-8">
       {/* Header */}
-      <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl border border-white/20 p-6 lg:p-8">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 lg:gap-6">
-          <div className="flex items-center space-x-4">
-            <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
-              <Activity className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl lg:text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-                Campaign Management
-              </h1>
-              <p className="text-sm lg:text-base text-gray-500 mt-1">
-                View and manage your Facebook advertising campaigns
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex flex-wrap items-center gap-3 lg:gap-4">
-            {/* Search */}
-            <div className="relative flex-1 lg:flex-none lg:w-80">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search campaigns..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-gray-50/50 border-gray-200/50 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/30"
-              />
-            </div>
-
-            {/* Actions */}
-            <div className="flex items-center gap-2">
-              <Button 
-                onClick={onRefresh} 
-                disabled={isLoading} 
-                className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white border-0 rounded-xl px-3 lg:px-4 py-2 shadow-lg hover:shadow-xl transition-all duration-200"
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">Refresh</span>
-              </Button>
-            </div>
-          </div>
-        </div>
+      <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl border border-white/20 lg:p-3">
         
         {/* Stats Summary */}
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-gray-50/50 backdrop-blur-sm rounded-xl p-4 border border-gray-200/30">
             <div className="flex items-center space-x-2">
               <Target className="h-4 w-4 text-blue-600" />
@@ -229,33 +251,110 @@ export function CampaignTable({
       {/* Campaigns Grid */}
       <Card className="bg-white/70 backdrop-blur-lg border-white/20 shadow-xl rounded-2xl">
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center space-x-2">
-            <Activity className="h-5 w-5" />
-            <span>Campaigns</span>
-            <Badge variant="secondary">{filteredCampaigns.length}</Badge>
-          </CardTitle>
-          <Button variant="outline" size="sm" onClick={onRefresh}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-        </div>
-        
-        {/* Search */}
-        <div className="flex items-center space-x-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Search campaigns..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+        <div className="flex flex-col space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <h3 className="text-lg font-semibold text-gray-900">Campaigns</h3>
+              <Badge variant="outline" className="text-xs">
+                {getDatePresetLabel(datePreset)}
+              </Badge>
+            </div>
+            <Button variant="outline" size="sm" onClick={onRefresh} disabled={isLoading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
           </div>
+          
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 flex-1">
+            {/* Search */}
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search campaigns..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            
+            {/* Status Filter */}
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-32">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="paused">Paused</SelectItem>
+                <SelectItem value="archived">Archived</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            {/* Spend Filter */}
+            <Select value={spendFilter} onValueChange={setSpendFilter}>
+              <SelectTrigger className="w-full sm:w-32">
+                <SelectValue placeholder="Spend" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Spend</SelectItem>
+                <SelectItem value="low">&lt; 100k</SelectItem>
+                <SelectItem value="medium">100k - 1M</SelectItem>
+                <SelectItem value="high">&gt; 1M</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            {/* Date Filter */}
+            <Select value={datePreset} onValueChange={handleDatePresetChange} disabled={isLoading}>
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="Time Period" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="yesterday">Yesterday</SelectItem>
+                <SelectItem value="last_3d">Last 3 Days</SelectItem>
+                <SelectItem value="last_7d">Last 7 Days</SelectItem>
+                <SelectItem value="last_14d">Last 14 Days</SelectItem>
+                <SelectItem value="last_28d">Last 28 Days</SelectItem>
+                <SelectItem value="last_30d">Last 30 Days</SelectItem>
+                <SelectItem value="last_90d">Last 90 Days</SelectItem>
+                <SelectItem value="this_week_mon_today">This Week</SelectItem>
+                <SelectItem value="last_week_mon_sun">Last Week</SelectItem>
+                <SelectItem value="this_month">This Month</SelectItem>
+                <SelectItem value="last_month">Last Month</SelectItem>
+                <SelectItem value="this_quarter">This Quarter</SelectItem>
+                <SelectItem value="last_quarter">Last Quarter</SelectItem>
+                <SelectItem value="this_year">This Year</SelectItem>
+                <SelectItem value="last_year">Last Year</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            {/* Clear Filters */}
+            {(searchTerm || statusFilter !== 'all' || spendFilter !== 'all' || datePreset !== currentDatePreset) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSearchTerm('');
+                  setStatusFilter('all');
+                  setSpendFilter('all');
+                  setDatePreset(currentDatePreset);
+                  if (onDatePresetChange) {
+                    onDatePresetChange(currentDatePreset);
+                  }
+                }}
+                className="w-full sm:w-auto"
+              >
+                <Filter className="h-4 w-4 mr-1" />
+                Clear
+              </Button>
+            )}
+          </div>
+        </div>
         </div>
       </CardHeader>
       
-        <CardContent className="p-6">
+        <CardContent >
           {filteredCampaigns.length === 0 ? (
             <div className="text-center py-12">
               <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl mx-auto mb-6 flex items-center justify-center">
@@ -285,9 +384,14 @@ export function CampaignTable({
                       <tr className="border-b border-gray-200/50">
                         <th className="text-left p-4 font-semibold text-gray-700">Campaign</th>
                         <th className="text-left p-4 font-semibold text-gray-700">Status</th>
+                        <th className="text-center p-4 font-semibold text-gray-700">Off/On</th>
                         <th className="text-left p-4 font-semibold text-gray-700">Objective</th>
-                        <th className="text-left p-4 font-semibold text-gray-700">Budget</th>
-                        <th className="text-left p-4 font-semibold text-gray-700">Dates</th>
+                        <th className="text-right p-4 font-semibold text-gray-700">Spend</th>
+                        <th className="text-right p-4 font-semibold text-gray-700">Impressions</th>
+                        <th className="text-right p-4 font-semibold text-gray-700">Clicks</th>
+                        <th className="text-right p-4 font-semibold text-gray-700">CTR</th>
+                        <th className="text-right p-4 font-semibold text-gray-700">CPC</th>
+                        <th className="text-right p-4 font-semibold text-gray-700">Conversions</th>
                         <th className="text-left p-4 font-semibold text-gray-700">Actions</th>
                       </tr>
                     </thead>
@@ -300,43 +404,64 @@ export function CampaignTable({
                               <p className="text-sm text-gray-500 font-mono">ID: {campaign.id}</p>
                             </div>
                           </td>
+                          
                           <td className="p-4">
-                            {getStatusBadge(campaign.status, campaign.effective_status)}
+                            <CampaignStatusBadge 
+                              currentStatus={campaign.effective_status || campaign.status}
+                            />
                           </td>
+                          
+                          <td className="p-4">
+                            <div className="flex justify-center">
+                              {accessToken && (
+                                <CampaignToggle
+                                  campaignId={campaign.id}
+                                  currentStatus={campaign.effective_status || campaign.status}
+                                  accessToken={accessToken}
+                                  size="sm"
+                                  showLabel={false}
+                                  onStatusUpdate={(newStatus) => {
+                                    if (onStatusChange) {
+                                      onStatusChange(campaign.id, newStatus as 'ACTIVE' | 'PAUSED');
+                                    }
+                                  }}
+                                />
+                              )}
+                            </div>
+                          </td>
+                          
                           <td className="p-4">
                             {campaign.objective ? getObjectiveBadge(campaign.objective) : '—'}
                           </td>
-                          <td className="p-4">
-                            <div className="space-y-1">
-                              {campaign.daily_budget ? (
-                                <div className="flex items-center space-x-1">
-                                  <span className="text-sm font-medium">{formatCurrency(campaign.daily_budget)}/day</span>
-                                </div>
-                              ) : campaign.lifetime_budget ? (
-                                <div className="flex items-center space-x-1">
-                                  <span className="text-sm font-medium">{formatCurrency(campaign.lifetime_budget)} total</span>
-                                </div>
-                              ) : '—'}
-                              {campaign.budget_remaining && (
-                                <p className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">
-                                  Remaining: {formatCurrency(campaign.budget_remaining)}
-                                </p>
-                              )}
-                            </div>
+                          
+                          <td className="p-4 text-right">
+                            <span className="font-medium">
+                              {campaign.insights?.spend ? formatCurrency(campaign.insights.spend) : '—'}
+                            </span>
                           </td>
-                          <td className="p-4">
-                            <div className="space-y-1">
-                              <div className="flex items-center space-x-1">
-                                <Calendar className="h-3 w-3 text-blue-600" />
-                                <span className="text-sm">{formatDate(campaign.start_time || '')}</span>
-                              </div>
-                              {campaign.stop_time && (
-                                <p className="text-xs text-gray-500">
-                                  End: {formatDate(campaign.stop_time)}
-                                </p>
-                              )}
-                            </div>
+                          
+                          <td className="p-4 text-right">
+                            {formatMetric(campaign.insights?.impressions)}
                           </td>
+                          
+                          <td className="p-4 text-right">
+                            {formatMetric(campaign.insights?.clicks)}
+                          </td>
+                          
+                          <td className="p-4 text-right">
+                            {formatMetric(campaign.insights?.ctr, '%')}
+                          </td>
+                          
+                          <td className="p-4 text-right">
+                            {campaign.insights?.cpc ? formatCurrency(campaign.insights.cpc) : '—'}
+                          </td>
+                          
+                          <td className="p-4 text-right">
+                            <span className="font-medium text-green-600">
+                              {campaign.insights?.actions ? getConversions(campaign.insights.actions) : '—'}
+                            </span>
+                          </td>
+                          
                           <td className="p-4">
                             <div className="flex items-center space-x-2">
                               <Button
@@ -348,27 +473,6 @@ export function CampaignTable({
                                 <Eye className="h-4 w-4 mr-1" />
                                 View
                               </Button>
-                              {onStatusChange && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => onStatusChange(
-                                    campaign.id, 
-                                    campaign.effective_status === 'ACTIVE' ? 'PAUSED' : 'ACTIVE'
-                                  )}
-                                  className={`rounded-lg ${
-                                    campaign.effective_status === 'ACTIVE' 
-                                      ? 'hover:bg-yellow-50 hover:border-yellow-200' 
-                                      : 'hover:bg-green-50 hover:border-green-200'
-                                  }`}
-                                >
-                                  {campaign.effective_status === 'ACTIVE' ? (
-                                    <Pause className="h-4 w-4" />
-                                  ) : (
-                                    <Play className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              )}
                             </div>
                           </td>
                         </tr>
@@ -388,7 +492,30 @@ export function CampaignTable({
                           <h4 className="font-semibold text-gray-900 mb-1">{campaign.name}</h4>
                           <p className="text-sm text-gray-500 font-mono">ID: {campaign.id}</p>
                         </div>
-                        {getStatusBadge(campaign.status, campaign.effective_status)}
+                        <div className="flex flex-col items-end space-y-2">
+                          <CampaignStatusBadge 
+                            currentStatus={campaign.effective_status || campaign.status}
+                          />
+                          {accessToken && (
+                            <div className="flex items-center space-x-2">
+                              <span className="text-xs text-gray-600">
+                                {campaign.effective_status?.toUpperCase() === 'ACTIVE' ? 'Active' : 'Paused'}
+                              </span>
+                              <CampaignToggle
+                                campaignId={campaign.id}
+                                currentStatus={campaign.effective_status || campaign.status}
+                                accessToken={accessToken}
+                                size="sm"
+                                showLabel={false}
+                                onStatusUpdate={(newStatus) => {
+                                  if (onStatusChange) {
+                                    onStatusChange(campaign.id, newStatus as 'ACTIVE' | 'PAUSED');
+                                  }
+                                }}
+                              />
+                            </div>
+                          )}
+                        </div>
                       </div>
                       
                       <div className="space-y-3">
@@ -397,6 +524,39 @@ export function CampaignTable({
                             <span className="text-sm text-gray-600 font-medium">Objective:</span>
                             {getObjectiveBadge(campaign.objective)}
                           </div>
+                        )}
+                        
+                        {campaign.insights && (
+                          <>
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-gray-600 font-medium">Spend:</span>
+                              <span className="text-sm font-semibold">
+                                {formatCurrency(campaign.insights.spend)}
+                              </span>
+                            </div>
+                            
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-gray-600 font-medium">Impressions:</span>
+                              <span className="text-sm">{formatMetric(campaign.insights.impressions)}</span>
+                            </div>
+                            
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-gray-600 font-medium">Clicks:</span>
+                              <span className="text-sm">{formatMetric(campaign.insights.clicks)}</span>
+                            </div>
+                            
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-gray-600 font-medium">CTR:</span>
+                              <span className="text-sm">{formatMetric(campaign.insights.ctr, '%')}</span>
+                            </div>
+                            
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-gray-600 font-medium">Conversions:</span>
+                              <span className="text-sm font-semibold text-green-600">
+                                {campaign.insights.actions ? getConversions(campaign.insights.actions) : '0'}
+                              </span>
+                            </div>
+                          </>
                         )}
                         
                         <div className="flex items-center justify-between">
@@ -433,27 +593,6 @@ export function CampaignTable({
                           <Eye className="h-4 w-4 mr-2" />
                           View Details
                         </Button>
-                        {onStatusChange && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => onStatusChange(
-                              campaign.id, 
-                              campaign.effective_status === 'ACTIVE' ? 'PAUSED' : 'ACTIVE'
-                            )}
-                            className={`rounded-xl ${
-                              campaign.effective_status === 'ACTIVE' 
-                                ? 'bg-yellow-50/50 hover:bg-yellow-100/50 border-yellow-200/50' 
-                                : 'bg-green-50/50 hover:bg-green-100/50 border-green-200/50'
-                            }`}
-                          >
-                            {campaign.effective_status === 'ACTIVE' ? (
-                              <Pause className="h-4 w-4" />
-                            ) : (
-                              <Play className="h-4 w-4" />
-                            )}
-                          </Button>
-                        )}
                       </div>
                     </CardContent>
                   </Card>

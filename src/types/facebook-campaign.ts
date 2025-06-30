@@ -89,3 +89,26 @@ export interface FacebookAdResponse {
   data: FacebookAd[];
   paging?: CampaignPaging;
 }
+
+export interface FacebookCampaignInsights {
+  campaign_id?: string;
+  campaign_name?: string;
+  spend: string;
+  impressions: string;
+  reach: string;
+  clicks: string;
+  inline_link_clicks: string;
+  actions?: Array<{
+    action_type: string;
+    value: string;
+  }>;
+  cpc: string;
+  cpm: string;
+  ctr: string;
+  date_start: string;
+  date_stop: string;
+}
+
+export interface FacebookCampaignWithInsights extends FacebookCampaign {
+  insights?: FacebookCampaignInsights;
+}

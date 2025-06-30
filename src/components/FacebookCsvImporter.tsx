@@ -24,6 +24,7 @@ import {
 import { useDropzone } from 'react-dropzone';
 import { CsvConverter } from './CsvConverter';
 import { CsvPreviewDialog } from './CsvPreviewDialog';
+import { CampaignStatusButton } from './CampaignStatusButton';
 
 interface ImportResult {
   name: string;
@@ -680,15 +681,29 @@ export function FacebookCsvImporter({
                       </div>
                       
                       {result.status === 'success' && result.facebook_ids && (
-                        <div className="mt-2 space-y-2">
+                        <div className="mt-2 space-y-3">
                           <div className="text-xs text-green-700">
                             <p>Campaign ID: {result.facebook_ids.campaign_id}</p>
                             <p>Ad Set ID: {result.facebook_ids.adset_id}</p>
                           </div>
+
+                          {/* Campaign Status Control */}
+                          <div className="border-t border-green-200 pt-2">
+                            <p className="text-xs text-green-700 font-medium mb-2">Campaign Control:</p>
+                            <CampaignStatusButton
+                              campaignId={result.facebook_ids.campaign_id}
+                              currentStatus="PAUSED" // Default status after creation
+                              accessToken={accessToken}
+                              size="sm"
+                              onStatusUpdate={(newStatus) => {
+                                console.log(`Campaign ${result.facebook_ids!.campaign_id} status updated to ${newStatus}`);
+                              }}
+                            />
+                          </div>
                           
                           {/* Redirect Buttons */}
                           {result.facebook_urls && (
-                            <div className="space-y-2">
+                            <div className="space-y-2 border-t border-green-200 pt-2">
                               <p className="text-xs text-green-700 font-medium">
                                 ✅ Campaign created successfully! You can now view it on Facebook:
                               </p>

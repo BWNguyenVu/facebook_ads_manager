@@ -89,7 +89,7 @@ export default function ImportPage() {
   const handleImportComplete = (results: any[]) => {
     console.log('Import completed:', results);
     // Redirect to campaigns page after successful import
-    router.push('/campaigns');
+    // router.push('/campaigns');
   };
 
   if (isLoading) {

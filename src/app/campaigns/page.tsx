@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { UserSession } from '@/types/user';
-import { FacebookCampaign, FacebookAdSet, FacebookCampaignResponse, FacebookAdSetResponse } from '@/types/facebook-campaign';
+import { FacebookCampaign, FacebookAdSet, FacebookCampaignResponse, FacebookAdSetResponse, FacebookCampaignWithInsights, FacebookCampaignInsights } from '@/types/facebook-campaign';
 import { 
   Activity, 
   User,
@@ -35,9 +35,10 @@ export default function CampaignsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('campaigns');
   
   // Campaign data
-  const [campaigns, setCampaigns] = useState<FacebookCampaign[]>([]);
-  const [selectedCampaign, setSelectedCampaign] = useState<FacebookCampaign | null>(null);
+  const [campaigns, setCampaigns] = useState<FacebookCampaignWithInsights[]>([]);
+  const [selectedCampaign, setSelectedCampaign] = useState<FacebookCampaignWithInsights | null>(null);
   const [campaignsLoading, setCampaignsLoading] = useState(false);
+  const [currentDatePreset, setCurrentDatePreset] = useState('last_7d');
   
   // AdSet data
   const [adsets, setAdsets] = useState<FacebookAdSet[]>([]);
@@ -61,9 +62,9 @@ export default function CampaignsPage() {
       setUserSession(session);
       setIsLoading(false);
       
-      // Auto-load campaigns if we have access token and account
+      // Auto-load campaigns with insights if we have access token and account
       if (getAccessToken() && getAccountId()) {
-        loadCampaigns();
+        loadCampaignsWithInsights();
       }
     } catch (error) {
       logger.error('Invalid session data:', error);
@@ -185,6 +186,84 @@ export default function CampaignsPage() {
     }
   };
 
+  const loadCampaignsWithInsights = async (datePreset = currentDatePreset) => {
+    const accessToken = getAccessToken();
+    const accountId = getAccountId();
+    
+    if (!accessToken || !accountId) {
+      setError('Missing access token or account ID. Please configure in Settings.');
+      return;
+    }
+
+    setCampaignsLoading(true);
+    setError('');
+    
+    try {
+      // First load campaigns
+      const token = localStorage.getItem('auth_token');
+      const campaignsResponse = await fetch(
+        `/api/facebook/campaigns/list?account_id=${encodeURIComponent(accountId)}&access_token=${encodeURIComponent(accessToken)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!campaignsResponse.ok) {
+        const errorData = await campaignsResponse.json();
+        throw new Error(errorData.error || 'Failed to fetch campaigns');
+      }
+
+      const campaignsData: FacebookCampaignResponse = await campaignsResponse.json();
+      const campaignsList = campaignsData.data || [];
+
+      if (campaignsList.length === 0) {
+        setCampaigns([]);
+        return;
+      }
+
+      // Then load insights for campaigns
+      const campaignIds = campaignsList.map(c => c.id).join(',');
+      const insightsResponse = await fetch(
+        `/api/facebook/campaigns/insights?account_id=${encodeURIComponent(accountId)}&access_token=${encodeURIComponent(accessToken)}&campaign_ids=${encodeURIComponent(campaignIds)}&level=campaign&date_preset=${encodeURIComponent(datePreset)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      let insightsData: FacebookCampaignInsights[] = [];
+      if (insightsResponse.ok) {
+        const insights = await insightsResponse.json();
+        insightsData = insights.data || [];
+      } else {
+        console.warn('Failed to load insights data, continuing without insights');
+      }
+
+      // Merge campaigns with insights
+      const campaignsWithInsights: FacebookCampaignWithInsights[] = campaignsList.map(campaign => {
+        const insight = insightsData.find(i => i.campaign_id === campaign.id);
+        return {
+          ...campaign,
+          insights: insight
+        };
+      });
+
+      setCampaigns(campaignsWithInsights);
+      logger.debug(`Loaded ${campaignsWithInsights.length} campaigns with insights for ${datePreset}`);
+    } catch (error: any) {
+      logger.error('Error loading campaigns with insights:', error);
+      setError(error.message || 'Failed to load campaigns');
+      
+      // Fallback to loading campaigns without insights
+      loadCampaigns();
+    } finally {
+      setCampaignsLoading(false);
+    }
+  };
+
   const handleBackToCampaigns = () => {
     setViewMode('campaigns');
     setSelectedCampaign(null);
@@ -198,8 +277,29 @@ export default function CampaignsPage() {
   };
 
   const handleStatusChange = async (id: string, newStatus: 'ACTIVE' | 'PAUSED') => {
-    // TODO: Implement status change API
-    logger.debug(`Change status of ${id} to ${newStatus}`);
+    // Status update is handled by CampaignActionButton component
+    // This callback updates local state immediately for better UX
+    logger.debug(`Campaign ${id} status changed to ${newStatus}`);
+    
+    // Update campaigns state immediately (optimistic update)
+    setCampaigns(prevCampaigns => 
+      prevCampaigns.map(campaign => 
+        campaign.id === id 
+          ? { ...campaign, status: newStatus, effective_status: newStatus }
+          : campaign
+      )
+    );
+    
+    // Update adsets state if viewing adsets for this campaign
+    if (viewMode === 'adsets' && selectedCampaign?.id === id) {
+      setAdsets(prevAdsets => 
+        prevAdsets.map(adset => 
+          adset.campaign_id === id 
+            ? { ...adset, campaign_status: newStatus }
+            : adset
+        )
+      );
+    }
   };
 
   const handleLogout = () => {
@@ -210,6 +310,11 @@ export default function CampaignsPage() {
 
   const handleBackToDashboard = () => {
     router.push('/dashboard');
+  };
+
+  const handleDatePresetChange = (newDatePreset: string) => {
+    setCurrentDatePreset(newDatePreset);
+    loadCampaignsWithInsights(newDatePreset);
   };
 
   if (isLoading) {
@@ -321,9 +426,13 @@ export default function CampaignsPage() {
             campaigns={campaigns}
             isLoading={campaignsLoading}
             onViewDetails={loadAdSets}
-            onRefresh={loadCampaigns}
+            onRefresh={() => loadCampaignsWithInsights(currentDatePreset)}
             onStatusChange={handleStatusChange}
+            onRefreshAfterUpdate={() => loadCampaignsWithInsights(currentDatePreset)}
+            onDatePresetChange={handleDatePresetChange}
             userSession={userSession}
+            accessToken={getAccessToken()}
+            currentDatePreset={currentDatePreset}
           />
         ) : viewMode === 'adsets' && selectedCampaign ? (
           <AdSetTable

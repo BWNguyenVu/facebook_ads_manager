@@ -92,7 +92,19 @@ export interface AdSetCreateRequest {
 export interface CreativeCreateRequest {
   access_token: string;
   name: string;
-  object_story_id: string;
+  object_story_id?: string;
+  object_story_spec?: {
+    page_id: string;
+    link_data: {
+      message: string;
+      call_to_action: {
+        type: string;
+        value: {
+          link: string;
+        };
+      };
+    };
+  };
 }
 
 export interface AdCreateRequest {

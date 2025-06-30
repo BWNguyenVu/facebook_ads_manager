@@ -253,10 +253,20 @@ export class FacebookAPI {
 }
 
 // Helper function to validate post ID format
-function validatePostIdFormat(postId: string, pageId: string): { isValid: boolean; suggestion?: string } {
+function validatePostIdFormat(postId: string | undefined, pageId: string | undefined): { isValid: boolean; suggestion?: string } {
+  // Handle undefined or empty values
+  if (!postId || !pageId) {
+    return { isValid: false };
+  }
+  
   // Remove any whitespace
   const cleanPostId = postId.trim();
   const cleanPageId = pageId.trim();
+  
+  // Handle empty strings after trimming
+  if (!cleanPostId || !cleanPageId) {
+    return { isValid: false };
+  }
   
   // Check if post_id contains page_id (common mistake)
   if (cleanPostId.includes(cleanPageId)) {
@@ -267,12 +277,21 @@ function validatePostIdFormat(postId: string, pageId: string): { isValid: boolea
     };
   }
   
-  // Check if it's just numbers and reasonable length (Facebook post IDs are typically 15-16 digits)
-  if (!/^\d+$/.test(cleanPostId)) {
+  // Check if it's numeric format (traditional) or pfbid format (new)
+  const isNumericFormat = /^\d+$/.test(cleanPostId);
+  const isPfbidFormat = /^pfbid[A-Za-z0-9]+$/.test(cleanPostId);
+  
+  if (!isNumericFormat && !isPfbidFormat) {
     return { isValid: false };
   }
   
-  if (cleanPostId.length < 10 || cleanPostId.length > 20) {
+  // For numeric format, check length
+  if (isNumericFormat && (cleanPostId.length < 10 || cleanPostId.length > 20)) {
+    return { isValid: false };
+  }
+  
+  // For pfbid format, check minimum length
+  if (isPfbidFormat && cleanPostId.length < 10) {
     return { isValid: false };
   }
   
@@ -333,8 +352,8 @@ export async function createFullCampaign(
       optimization_goal: mappedCampaignData.optimization_goal || 'POST_ENGAGEMENT',
       bid_strategy: mappedCampaignData.bid_strategy || 'LOWEST_COST_WITHOUT_CAP',
       destination_type: mappedCampaignData.destination_type || 'ON_POST',
-      start_time: mappedCampaignData.start_time,
-      targeting: {
+      start_time: mappedCampaignData.start_time || new Date().toISOString(),
+      targeting: mappedCampaignData.targeting || {
         geo_locations: { countries: ['VN'] },
         age_min: mappedCampaignData.age_min || 18,
         age_max: mappedCampaignData.age_max || 65,
@@ -355,73 +374,144 @@ export async function createFullCampaign(
     const adset = await facebookApi.createAdSet(accountId, adsetRequest);
     results.adset_id = adset.id;
 
-    // 3. Validate post ID format before validation
-    const postIdValidation = validatePostIdFormat(mappedCampaignData.post_id, mappedCampaignData.page_id);
-    if (!postIdValidation.isValid) {
-      if (postIdValidation.suggestion) {
-        throw new Error(`Post ID format appears incorrect. Found: "${mappedCampaignData.post_id}" but it should probably be: "${postIdValidation.suggestion}". Post ID should not include the page ID prefix.`);
-      } else {
-        throw new Error(`Post ID format is invalid: "${mappedCampaignData.post_id}". Post ID should be a numeric string (15-16 digits) without page ID prefix.`);
+    // 3. Check if we have a valid post ID for object_story_id creative
+    const hasValidPostId = mappedCampaignData.post_id && mappedCampaignData.page_id;
+    
+    if (hasValidPostId) {
+      // 3a. Validate post ID format before validation
+      const postIdValidation = validatePostIdFormat(mappedCampaignData.post_id, mappedCampaignData.page_id);
+      if (!postIdValidation.isValid) {
+        if (postIdValidation.suggestion) {
+          throw new Error(`Post ID format appears incorrect. Found: "${mappedCampaignData.post_id}" but it should probably be: "${postIdValidation.suggestion}". Post ID should not include the page ID prefix.`);
+        } else {
+          throw new Error(`Post ID format is invalid: "${mappedCampaignData.post_id}". Post ID should be a numeric string (15-16 digits) without page ID prefix.`);
+        }
       }
-    }
 
-    // 4. Validate post before creating creative (with enhanced validation)
-    console.log('Validating post ID:', mappedCampaignData.post_id, 'for page:', mappedCampaignData.page_id);
-    const isPostValid = await facebookApi.validatePost(mappedCampaignData.post_id, mappedCampaignData.page_id);
-    if (!isPostValid) {
-      console.warn(`Post ID ${mappedCampaignData.post_id} validation failed, but proceeding with creative creation...`);
-      // We'll continue anyway since Facebook will give a more specific error if the post is truly invalid
-    }
+      // 4a. Validate post before creating creative (with enhanced validation)
+      console.log('Validating post ID:', mappedCampaignData.post_id, 'for page:', mappedCampaignData.page_id);
+      const isPostValid = await facebookApi.validatePost(mappedCampaignData.post_id, mappedCampaignData.page_id);
+      if (!isPostValid) {
+        console.warn(`Post ID ${mappedCampaignData.post_id} validation failed, but proceeding with creative creation...`);
+        // We'll continue anyway since Facebook will give a more specific error if the post is truly invalid
+      }
 
-    // 5. Tạo Creative
-    console.log('Creating creative with post ID:', mappedCampaignData.post_id, 'and page ID:', mappedCampaignData.page_id);
-    const creativeRequest: CreativeCreateRequest = {
-      access_token: facebookApi.getAccessToken(),
-      name: `${mappedCampaignData.name} - Creative`,
-      object_story_id: `${mappedCampaignData.page_id}_${mappedCampaignData.post_id}`
-    };
+      // 5a. Try to create Creative with object_story_id (existing post) with fallback
+      console.log('Creating creative with post ID:', mappedCampaignData.post_id, 'and page ID:', mappedCampaignData.page_id);
+      
+      try {
+        const creativeRequest: CreativeCreateRequest = {
+          access_token: facebookApi.getAccessToken(),
+          name: `${mappedCampaignData.name} - Creative`,
+          object_story_id: `${mappedCampaignData.page_id}_${mappedCampaignData.post_id}`
+        };
 
-    let creative;
-    try {
-      creative = await facebookApi.createCreative(accountId, creativeRequest);
+        const creative = await facebookApi.createCreative(accountId, creativeRequest);
+        results.creative_id = creative.id;
+      } catch (postCreativeError: any) {
+        console.warn('Failed to create creative with object_story_id, falling back to link_data:', postCreativeError.message);
+        
+        // Fallback: Create creative with link_data instead
+        const effectivePageId = mappedCampaignData.page_id || config.page_id || '';
+        if (!effectivePageId) {
+          throw new Error('Page ID is required for creating creative with link_data fallback.');
+        }
+        
+        // Get content from original CSV data
+        const message = mappedCampaignData.original_data?.Body || 
+                       mappedCampaignData.ad_creative?.object_story_spec?.link_data?.message ||
+                       'Check out our amazing products and services!';
+        
+        const linkUrl = mappedCampaignData.original_data?.['Display Link']?.trim() || 
+                       `https://www.facebook.com/${effectivePageId}/posts/${mappedCampaignData.post_id}`;
+        
+        const callToActionType = mappedCampaignData.ad_creative?.object_story_spec?.link_data?.call_to_action?.type || 
+                                mappedCampaignData.original_data?.['Call to Action'] || 
+                                'LEARN_MORE';
+        
+        const fallbackCreativeRequest: CreativeCreateRequest = {
+          access_token: facebookApi.getAccessToken(),
+          name: `${mappedCampaignData.name} - Creative (Fallback)`,
+          object_story_spec: {
+            page_id: effectivePageId,
+            link_data: {
+              message: message,
+              call_to_action: {
+                type: callToActionType,
+                value: {
+                  link: linkUrl
+                }
+              }
+            }
+          }
+        };
+
+        console.log('Creating fallback creative with link_data:', JSON.stringify(fallbackCreativeRequest, null, 2));
+        const fallbackCreative = await facebookApi.createCreative(accountId, fallbackCreativeRequest);
+        results.creative_id = fallbackCreative.id;
+        console.log('✅ Fallback creative created successfully:', fallbackCreative.id);
+      }
+    } else {
+      // 5b. Create Creative with link_data (new post content)
+      console.log('Creating creative with link_data (no existing post ID provided)');
+      
+      // Ensure we have a valid page_id
+      const effectivePageId = mappedCampaignData.page_id || config.page_id || '';
+      if (!effectivePageId) {
+        throw new Error('Page ID is required for creating creative with link_data. Please provide a valid Page ID.');
+      }
+      
+      // Get link from CSV Display Link or fallback to safe default
+      const linkUrl = mappedCampaignData.original_data?.['Display Link'] && 
+                     mappedCampaignData.original_data['Display Link'].trim() ?
+                     mappedCampaignData.original_data['Display Link'].trim() :
+                     'https://facebook.com';
+      
+      // For CSV imports without post ID, we'll create a link creative with a proper URL
+      const creativeRequest: CreativeCreateRequest = {
+        access_token: facebookApi.getAccessToken(),
+        name: `${mappedCampaignData.name} - Creative`,
+        object_story_spec: {
+          page_id: effectivePageId,
+          link_data: {
+            message: mappedCampaignData.ad_creative?.object_story_spec?.link_data?.message || 
+                    mappedCampaignData.original_data?.Body ||
+                    'Check out our amazing products and services!',
+            call_to_action: {
+              type: mappedCampaignData.ad_creative?.object_story_spec?.link_data?.call_to_action?.type || 'LEARN_MORE',
+              value: {
+                link: linkUrl
+              }
+            }
+          }
+        }
+      };
+
+      console.log('Creative request:', JSON.stringify(creativeRequest, null, 2));
+      const creative = await facebookApi.createCreative(accountId, creativeRequest);
       results.creative_id = creative.id;
-    } catch (creativeError: any) {
-      // Enhanced error message for creative creation
-      const errorMessage = creativeError.response?.data?.error?.message || creativeError.message;
-      const errorCode = creativeError.response?.data?.error?.code;
-      
-      let enhancedError = `Failed to create creative: ${errorMessage}`;
-      
-      if (errorCode === 100 || errorMessage.includes('promoted object is invalid')) {
-        enhancedError += `\n\nPossible causes:
-1. Post ID ${mappedCampaignData.post_id} does not exist or was deleted
-2. Page ID ${mappedCampaignData.page_id} is incorrect
-3. The post is not published or is set to private
-4. You don't have permission to access this post
-5. The post ID format is incorrect (should be just the number, not page_id_post_id)
-
-Please verify:
-- Post exists on the page: https://facebook.com/${mappedCampaignData.page_id}/posts/${mappedCampaignData.post_id}
-- Post is published and public
-- Your access token has permission to access this page and post`;
-      }
-      
-      throw new Error(enhancedError);
     }
 
-    // 6. Tạo Ad
-    const adRequest: AdCreateRequest = {
-      access_token: facebookApi.getAccessToken(),
-      name: `${mappedCampaignData.name} - Ad`,
-      adset_id: adset.id,
-      creative: {
-        creative_id: creative.id
-      },
-      status: 'PAUSED'
-    };
+    // 6. Tạo Ad với error handling
+    try {
+      const adRequest: AdCreateRequest = {
+        access_token: facebookApi.getAccessToken(),
+        name: `${mappedCampaignData.name} - Ad`,
+        adset_id: adset.id,
+        creative: {
+          creative_id: results.creative_id
+        },
+        status: 'PAUSED'
+      };
 
-    const ad = await facebookApi.createAd(accountId, adRequest);
-    results.ad_id = ad.id;
+      console.log('Creating ad with creative ID:', results.creative_id);
+      const ad = await facebookApi.createAd(accountId, adRequest);
+      results.ad_id = ad.id;
+      console.log('✅ Ad created successfully:', ad.id);
+    } catch (adError: any) {
+      console.error('❌ Failed to create ad:', adError.message);
+      throw new Error(`Failed to create ad: ${adError.message}. Campaign and AdSet were created successfully but Ad creation failed.`);
+    }
 
     return results;
   } catch (error: any) {

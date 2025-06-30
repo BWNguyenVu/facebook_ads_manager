@@ -20,7 +20,8 @@ import {
   AlertTriangle,
   Settings,
   RefreshCw,
-  FileText
+  FileText,
+  Upload
 } from 'lucide-react';
 
 type ViewMode = 'campaigns' | 'adsets';
@@ -262,6 +263,14 @@ export default function CampaignsPage() {
               Logs
             </Button>
             <Button
+              onClick={() => router.push('/import')}
+              variant="outline"
+              size="sm"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Import CSV
+            </Button>
+            <Button
               onClick={() => router.push('/settings')}
               variant="outline"
               size="sm"
@@ -316,19 +325,17 @@ export default function CampaignsPage() {
             onStatusChange={handleStatusChange}
             userSession={userSession}
           />
-        ) : (
-          selectedCampaign && (
-            <AdSetTable
-              adsets={adsets}
-              campaign={selectedCampaign}
-              isLoading={adsetsLoading}
-              onBack={handleBackToCampaigns}
-              onRefresh={() => loadAdSets(selectedCampaign)}
-              onViewAds={handleViewAds}
-              onStatusChange={handleStatusChange}
-            />
-          )
-        )}
+        ) : viewMode === 'adsets' && selectedCampaign ? (
+          <AdSetTable
+            adsets={adsets}
+            campaign={selectedCampaign}
+            isLoading={adsetsLoading}
+            onBack={handleBackToCampaigns}
+            onRefresh={() => loadAdSets(selectedCampaign)}
+            onViewAds={handleViewAds}
+            onStatusChange={handleStatusChange}
+          />
+        ) : null}
       </div>
     </Layout>
   );

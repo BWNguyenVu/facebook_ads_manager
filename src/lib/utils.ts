@@ -503,13 +503,13 @@ export function mapCampaignObjective(value: string): string {
 export function getCompatibleOptimizationGoals(objective: string): string[] {
   switch (objective) {
     case "OUTCOME_ENGAGEMENT":
-      return ["POST_ENGAGEMENT", "REACH", "IMPRESSIONS", "PAGE_LIKES"];
+      return ["POST_ENGAGEMENT", "REACH", "IMPRESSIONS", "PAGE_LIKES", "CONVERSATIONS"];
     
     case "OUTCOME_TRAFFIC":
       return ["LINK_CLICKS", "LANDING_PAGE_VIEWS", "REACH", "IMPRESSIONS"];
     
     case "OUTCOME_LEADS":
-      return ["LEAD_GENERATION", "QUALITY_LEAD", "OFFSITE_CONVERSIONS"];
+      return ["LEAD_GENERATION", "QUALITY_LEAD", "OFFSITE_CONVERSIONS", "CONVERSATIONS"];
     
     case "OUTCOME_SALES":
       return ["OFFSITE_CONVERSIONS", "VALUE", "LINK_CLICKS", "LANDING_PAGE_VIEWS"];
@@ -521,7 +521,7 @@ export function getCompatibleOptimizationGoals(objective: string): string[] {
       return ["REACH", "IMPRESSIONS", "AD_RECALL_LIFT"];
     
     default:
-      return ["POST_ENGAGEMENT", "REACH", "IMPRESSIONS"];
+      return ["POST_ENGAGEMENT", "REACH", "IMPRESSIONS", "CONVERSATIONS"];
   }
 }
 

@@ -20,6 +20,7 @@ import {
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Upload CSV', href: '/upload', icon: Upload },
+  { name: 'Import Facebook Ads', href: '/import', icon: Facebook },
   { name: 'Campaigns', href: '/campaigns', icon: Activity },
   { name: 'Campaign Logs', href: '/logs', icon: FileText },
   { name: 'Account Spend', href: '/spend', icon: DollarSign },

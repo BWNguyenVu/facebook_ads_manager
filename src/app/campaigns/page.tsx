@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { createLogger } from '@/lib/logger';
+import { createClientLogger } from '@/lib/client-logger';
 import { useRouter } from 'next/navigation';
 import { Layout } from '@/components/Layout';
 import { CampaignTable } from '@/components/CampaignTable';
@@ -26,7 +26,7 @@ import {
 type ViewMode = 'campaigns' | 'adsets';
 
 
-const logger = createLogger('CampaignsPage');
+const logger = createClientLogger('CampaignsPage');
 export default function CampaignsPage() {
   const router = useRouter();
   const [userSession, setUserSession] = useState<UserSession | null>(null);

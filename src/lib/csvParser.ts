@@ -1,7 +1,26 @@
 import Papa from 'papaparse';
-import { createLogger } from '@/lib/logger';
 import { CampaignData } from '@/types/facebook';
 import { autoMapFacebookEnums, validateFacebookEnums } from '@/lib/utils';
+
+// Use console for logging in csvParser as it's used by client components
+const logger = {
+  debug: (message: string, ...args: any[]) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.debug('[CSVParser]', message, ...args);
+    }
+  },
+  info: (message: string, ...args: any[]) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.info('[CSVParser]', message, ...args);
+    }
+  },
+  warn: (message: string, ...args: any[]) => {
+    console.warn('[CSVParser]', message, ...args);
+  },
+  error: (message: string, ...args: any[]) => {
+    console.error('[CSVParser]', message, ...args);
+  }
+};
 
 export interface CSVParseResult {
   data: CampaignData[];
@@ -78,7 +97,7 @@ function validateRow(row: any, index: number): string[] {
   if (row.page_id) {
     const originalPageId = row.page_id.toString();
     const pageId = parseIdField(row.page_id);
-    logger.debug(`Row ${index + 1} - Original page_id:`, originalPageId, '-> Parsed:', pageId);
+    logger.debug(`Row ${index + 1} - Original page_id:`, { originalPageId, parsed: pageId });
     
     // Check for scientific notation in original value
     if (originalPageId.includes('E') || originalPageId.includes('e')) {
@@ -93,7 +112,7 @@ function validateRow(row: any, index: number): string[] {
   if (row.post_id) {
     const originalPostId = row.post_id.toString();
     const postId = parseIdField(row.post_id);
-    logger.debug(`Row ${index + 1} - Original post_id:`, originalPostId, '-> Parsed:', postId);
+    logger.debug(`Row ${index + 1} - Original post_id:`, { originalPostId, parsed: postId });
     
     // Check for scientific notation in original value
     if (originalPostId.includes('E') || originalPostId.includes('e')) {
@@ -108,7 +127,7 @@ function validateRow(row: any, index: number): string[] {
   if (row.account_id) {
     const originalAccountId = row.account_id.toString();
     const accountId = parseIdField(row.account_id);
-    logger.debug(`Row ${index + 1} - Original account_id:`, originalAccountId, '-> Parsed:', accountId);
+    logger.debug(`Row ${index + 1} - Original account_id:`, { originalAccountId, parsed: accountId });
     
     // Check for scientific notation in original value
     if (originalAccountId.includes('E') || originalAccountId.includes('e')) {
@@ -190,7 +209,6 @@ function normalizeDateTime(dateString: string): string {
 
 // Parse CSV file
 
-const logger = createLogger('parseCSV');
 export function parseCSV(file: File): Promise<CSVParseResult> {
   return new Promise((resolve) => {
     // Determine delimiter based on file extension

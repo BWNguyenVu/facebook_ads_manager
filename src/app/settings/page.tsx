@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { createLogger } from '@/lib/logger';
+import { createClientLogger } from '@/lib/client-logger';
 import { useRouter } from 'next/navigation';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -47,7 +47,7 @@ interface TokenInfo {
 }
 
 
-const logger = createLogger('SettingsPage');
+const logger = createClientLogger('SettingsPage');
 export default function SettingsPage() {
   const router = useRouter();
   const [userSession, setUserSession] = useState<UserSession | null>(null);

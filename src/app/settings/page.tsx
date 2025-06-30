@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -24,7 +25,10 @@ import {
   User,
   LogOut,
   ArrowLeft,
-  Activity
+  Activity,
+  Search,
+  Filter,
+  ChevronDown
 } from 'lucide-react';
 import { UserSession } from '@/types/user';
 
@@ -68,8 +72,14 @@ export default function SettingsPage() {
   const [showSecrets, setShowSecrets] = useState(false);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [facebookAccounts, setFacebookAccounts] = useState<any[]>([]);
+  const [allFacebookAccounts, setAllFacebookAccounts] = useState<any[]>([]);
   const [isLoadingAccounts, setIsLoadingAccounts] = useState(false);
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
+  const [accountSearch, setAccountSearch] = useState<string>('');
+  const [accountStatusFilter, setAccountStatusFilter] = useState<string>('all');
+  const [accountsPage, setAccountsPage] = useState<any>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [accountLimit, setAccountLimit] = useState<string>('100');
 
   const [activeTab, setActiveTab] = useState('facebook');
 
@@ -441,6 +451,10 @@ export default function SettingsPage() {
     localStorage.removeItem('token_expires_at');
     setTokenInfo(null);
     setFacebookAccounts([]);
+    setAllFacebookAccounts([]);
+    setAccountsPage(null);
+    setAccountSearch('');
+    setAccountStatusFilter('all');
     setSuccess('Tokens cleared successfully');
   };
 
@@ -454,26 +468,77 @@ export default function SettingsPage() {
     await loadFacebookAccountsWithToken(longLivedToken);
   };
 
-  const loadFacebookAccountsWithToken = async (accessToken: string) => {
-    setIsLoadingAccounts(true);
+  const loadFacebookAccountsWithToken = async (accessToken: string, loadMore = false) => {
+    if (loadMore) {
+      setLoadingMore(true);
+    } else {
+      setIsLoadingAccounts(true);
+      setAllFacebookAccounts([]);
+      setFacebookAccounts([]);
+      setAccountsPage(null);
+    }
     setError(null);
 
     try {
-      const response = await fetch(`/api/facebook/accounts?access_token=${encodeURIComponent(accessToken)}`);
+      const params = new URLSearchParams({
+        access_token: accessToken,
+        limit: accountLimit
+      });
+
+      if (loadMore && accountsPage?.cursors?.after) {
+        params.append('after', accountsPage.cursors.after);
+      }
+
+      const response = await fetch(`/api/facebook/accounts?${params.toString()}`);
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(data.error || 'Failed to load accounts');
       }
 
-      setFacebookAccounts(data.accounts || []);
-      setSuccess(`Loaded ${data.accounts?.length || 0} ad accounts from Facebook`);
+      const newAccounts = data.accounts || [];
+      
+      if (loadMore) {
+        const updatedAllAccounts = [...allFacebookAccounts, ...newAccounts];
+        setAllFacebookAccounts(updatedAllAccounts);
+        setFacebookAccounts(filterAccounts(updatedAllAccounts));
+      } else {
+        setAllFacebookAccounts(newAccounts);
+        setFacebookAccounts(filterAccounts(newAccounts));
+      }
+
+      setAccountsPage(data.paging);
+      
+      const totalLoaded = loadMore ? allFacebookAccounts.length + newAccounts.length : newAccounts.length;
+      const hasMore = data.paging?.next ? ' (more available)' : '';
+      setSuccess(`Loaded ${totalLoaded} ad accounts from Facebook${hasMore}`);
     } catch (err: any) {
       setError(`Failed to load Facebook accounts: ${err.message}`);
     } finally {
       setIsLoadingAccounts(false);
+      setLoadingMore(false);
     }
   };
+
+  const filterAccounts = (accounts: any[]) => {
+    return accounts.filter(account => {
+      const matchesSearch = !accountSearch || 
+        account.name?.toLowerCase().includes(accountSearch.toLowerCase()) ||
+        account.account_id?.includes(accountSearch) ||
+        account.business_name?.toLowerCase().includes(accountSearch.toLowerCase());
+
+      const matchesStatus = accountStatusFilter === 'all' || 
+        (accountStatusFilter === 'active' && account.account_status === 1) ||
+        (accountStatusFilter === 'inactive' && account.account_status !== 1);
+
+      return matchesSearch && matchesStatus;
+    });
+  };
+
+  // Effect to re-filter when search or filter changes
+  useEffect(() => {
+    setFacebookAccounts(filterAccounts(allFacebookAccounts));
+  }, [accountSearch, accountStatusFilter, allFacebookAccounts]);
 
   const selectAccount = async (accountId: string) => {
     setSelectedAccountId(accountId);
@@ -921,23 +986,90 @@ export default function SettingsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex gap-3 mb-4">
-                  <Button 
-                    onClick={loadFacebookAccounts}
-                    disabled={isLoadingAccounts || !tokenInfo?.token}
-                    className="flex items-center gap-2"
-                  >
-                    {isLoadingAccounts ? (
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <RefreshCw className="h-4 w-4" />
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button 
+                      onClick={loadFacebookAccounts}
+                      disabled={isLoadingAccounts || !tokenInfo?.token}
+                      className="flex items-center gap-2"
+                    >
+                      {isLoadingAccounts ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4" />
+                      )}
+                      Load Ad Accounts
+                    </Button>
+                    
+                    <Select value={accountLimit} onValueChange={setAccountLimit}>
+                      <SelectTrigger className="w-32">
+                        <SelectValue placeholder="Limit" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="25">25 accounts</SelectItem>
+                        <SelectItem value="50">50 accounts</SelectItem>
+                        <SelectItem value="100">100 accounts</SelectItem>
+                        <SelectItem value="250">250 accounts</SelectItem>
+                        <SelectItem value="500">500 accounts</SelectItem>
+                        <SelectItem value="1000">1000 accounts</SelectItem>
+                        <SelectItem value="2000">2000 accounts</SelectItem>
+                        <SelectItem value="5000">5000 accounts</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    {!tokenInfo?.token && (
+                      <p className="text-sm text-gray-500 flex items-center">
+                        Generate a long-lived token first to load ad accounts
+                      </p>
                     )}
-                    Load Ad Accounts
-                  </Button>
-                  {!tokenInfo?.token && (
-                    <p className="text-sm text-gray-500 flex items-center">
-                      Generate a long-lived token first to load ad accounts
-                    </p>
+                  </div>
+
+                  {/* Search and Filter Controls */}
+                  {allFacebookAccounts.length > 0 && (
+                    <div className="flex flex-col sm:flex-row gap-3 p-4 bg-gray-50 rounded-lg">
+                      <div className="flex-1">
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <Input
+                            placeholder="Search accounts by name, ID, or business..."
+                            value={accountSearch}
+                            onChange={(e) => setAccountSearch(e.target.value)}
+                            className="pl-10"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Select value={accountStatusFilter} onValueChange={setAccountStatusFilter}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue placeholder="Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Status</SelectItem>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="inactive">Inactive</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setAccountSearch('');
+                            setAccountStatusFilter('all');
+                          }}
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Stats Summary */}
+                  {allFacebookAccounts.length > 0 && (
+                    <div className="flex gap-4 text-sm text-gray-600">
+                      <span>Total: {allFacebookAccounts.length}</span>
+                      <span>Filtered: {facebookAccounts.length}</span>
+                      <span>Active: {allFacebookAccounts.filter(a => a.account_status === 1).length}</span>
+                    </div>
                   )}
                 </div>
 
@@ -990,6 +1122,46 @@ export default function SettingsPage() {
                         </div>
                       </div>
                     ))}
+                    
+                    {/* Load More Button */}
+                    {accountsPage?.next && (
+                      <div className="text-center pt-4">
+                        <Button 
+                          onClick={() => {
+                            if (tokenInfo?.token) {
+                              loadFacebookAccountsWithToken(tokenInfo.token, true);
+                            }
+                          }}
+                          disabled={loadingMore}
+                          variant="outline"
+                          className="flex items-center gap-2"
+                        >
+                          {loadingMore ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                          Load More Accounts
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ) : allFacebookAccounts.length > 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>No accounts match your search criteria</p>
+                    <p className="text-sm">Try adjusting your search or filter settings</p>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="mt-3"
+                      onClick={() => {
+                        setAccountSearch('');
+                        setAccountStatusFilter('all');
+                      }}
+                    >
+                      Clear Filters
+                    </Button>
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">
@@ -1024,10 +1196,28 @@ export default function SettingsPage() {
                                 <Badge variant="outline">Primary</Badge>
                               )}
                             </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                          </div>                      </div>
+                    ))}
+                    
+                    {/* Load More Button */}
+                    {accountsPage?.next && (
+                      <div className="text-center py-4">
+                        <Button 
+                          onClick={() => loadFacebookAccountsWithToken(tokenInfo?.token || '', true)}
+                          disabled={loadingMore}
+                          variant="outline"
+                          className="flex items-center gap-2"
+                        >
+                          {loadingMore ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                          Load More Accounts
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                   </div>
                 )}
               </CardContent>

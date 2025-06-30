@@ -27,19 +27,30 @@ export class FacebookAPI {
     return this.accessToken;
   }
 
-  // Lấy danh sách ad accounts
-  async getAdAccounts(): Promise<FacebookAccount[]> {
+  // Lấy danh sách ad accounts với pagination
+  async getAdAccounts(limit: number = 1000, after?: string): Promise<{accounts: FacebookAccount[], paging?: any}> {
     try {
-      const response = await axios.get(`${FACEBOOK_API_BASE}/me/adaccounts`, {
-        params: {
-          access_token: this.accessToken,
-          fields: 'account_id,name,account_status,business,currency,timezone_name,timezone_offset_hours_utc'
-        }
-      });
-      return response.data.data.map((account: any) => ({
+      const params: any = {
+        access_token: this.accessToken,
+        fields: 'account_id,name,account_status,business,currency,timezone_name,timezone_offset_hours_utc',
+        limit: limit
+      };
+      
+      if (after) {
+        params.after = after;
+      }
+
+      const response = await axios.get(`${FACEBOOK_API_BASE}/me/adaccounts`, { params });
+      
+      const accounts = response.data.data.map((account: any) => ({
         ...account,
         business_name: account.business?.name || null
       }));
+
+      return {
+        accounts,
+        paging: response.data.paging || null
+      };
     } catch (error) {
       console.error('Error fetching ad accounts:', error);
       throw new Error('Failed to fetch ad accounts');

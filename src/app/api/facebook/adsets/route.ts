@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       'budget_remaining'
     ].join(',');
 
-    let url = `https://graph.facebook.com/v17.0/${campaignId}/adsets?access_token=${encodeURIComponent(accessToken)}&fields=${encodeURIComponent(fields)}}`;
+    let url = `https://graph.facebook.com/v17.0/${campaignId}/adsets?access_token=${encodeURIComponent(accessToken)}&fields=${encodeURIComponent(fields)}&limit=${limit}`;
     
     if (after) {
       url += `&after=${encodeURIComponent(after)}`;

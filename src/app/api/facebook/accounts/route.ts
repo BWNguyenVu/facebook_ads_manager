@@ -5,6 +5,8 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const accessToken = searchParams.get('access_token');
+    const limit = parseInt(searchParams.get('limit') || '1000');
+    const after = searchParams.get('after');
 
     if (!accessToken) {
       return NextResponse.json(
@@ -14,9 +16,13 @@ export async function GET(request: NextRequest) {
     }
 
     const facebookApi = new FacebookAPI(accessToken);
-    const accounts = await facebookApi.getAdAccounts();
+    const result = await facebookApi.getAdAccounts(limit, after);
 
-    return NextResponse.json({ accounts });
+    return NextResponse.json({ 
+      accounts: result.accounts,
+      paging: result.paging,
+      total: result.accounts.length
+    });
   } catch (error: any) {
     console.error('Error fetching accounts:', error);
     return NextResponse.json(
